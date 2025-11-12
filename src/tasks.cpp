@@ -432,6 +432,8 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
     static size_t totalFileSize = 0;
 
     if(!index) { // Start of upload
+        // Set upload flag to disable FastLED operations
+        uploadInProgress = true;
         // Clear memory and reset tracking
         clearArray();
         totalFileSize = 0;
@@ -475,13 +477,11 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         
         fsUploadFile.write(data, len);
     }
-
     // Finalize upload
     if(final && fsUploadFile) {
         fsUploadFile.close();
+        uploadInProgress = false;  // Re-enable FastLED operations
         request->send(200, "text/plain", "Upload complete");
-    }
-    
     // Handle aborted uploads
     if(!final && !fsUploadFile) {
         request->send(500, "text/plain", "Upload aborted");

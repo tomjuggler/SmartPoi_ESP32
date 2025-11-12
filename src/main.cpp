@@ -57,6 +57,7 @@ unsigned long previousMillis3 = 0;
 long interval = 5000;
 bool checkit = false;
 bool channelChange = false;
+bool uploadInProgress = false;  // Flag to disable FastLED operations during upload
 bool savingToSpiffs = false;
 unsigned long previousFlashy = 0;
 const long intervalBetweenFlashy = 5;
@@ -152,7 +153,7 @@ void loop() {
   packetSize = Udp.parsePacket();
   if (packetSize) {
     handleUDP();
-  } else if (!packetSize && state == 1) {
+  } else if (!packetSize && state == 1 && !uploadInProgress) {
     switch (pattern) {
       case 1:
         funColourJam();
