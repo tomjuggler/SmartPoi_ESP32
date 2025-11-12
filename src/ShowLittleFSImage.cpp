@@ -8,6 +8,7 @@ void showLittleFSImage() {
 
     if (!a) {
         imageToUse++;
+        return;  // Exit early if file doesn't exist
     } else {
         size_t size = a.size();
         
