@@ -64,6 +64,7 @@ extern int pattern;
 extern int apChannel;
 extern int imageToUse;
 extern int minImages;
+extern int maxImages;
 extern unsigned long previousMillis3;
 extern uint8_t addrNumA;
 extern uint8_t addrNumB;
