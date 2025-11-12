@@ -29,7 +29,8 @@ void showLittleFSImage() {
     } while (imageToUse != originalImageToUse && !fileFound);
     
     if (!fileFound) {
-        // No files found in this pattern range, skip display
+        // No files found in this pattern range, switch back to pattern 1
+        pattern = 1;
         return;
     }
         size_t size = a.size();
