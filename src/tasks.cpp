@@ -481,7 +481,7 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
     if(final && fsUploadFile) {
         fsUploadFile.close();
         uploadInProgress = false;  // Re-enable FastLED operations
-        request->send(200, "text/plain", "Upload complete");
+    }
     // Handle aborted uploads
     if(!final && !fsUploadFile) {
         request->send(500, "text/plain", "Upload aborted");
