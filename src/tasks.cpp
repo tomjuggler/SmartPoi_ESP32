@@ -438,6 +438,11 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         clearArray();
         totalFileSize = 0;
         
+        // Clean up FastLED/RMT before upload to prevent channel state errors
+        FastLED.clear();
+        FastLED.show();
+        delay(50);  // Allow RMT channel to complete any pending operations
+        
         // Create a new variable instead of modifying const parameter
         String fullPath = "/" + filename;
         
@@ -480,6 +485,7 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
     // Finalize upload
     if(final && fsUploadFile) {
         fsUploadFile.close();
+        delay(10);  // Allow file system operations to complete
         uploadInProgress = false;  // Re-enable FastLED operations
     }
     // Handle aborted uploads
