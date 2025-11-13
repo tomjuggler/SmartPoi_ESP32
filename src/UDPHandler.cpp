@@ -23,10 +23,11 @@ void handleUDP() {
         checkit = true;
     }
     previousMillis2 = currentMillis2;  // Use locally declared timing variables
-    state = 0;
-
     len = Udp.read(packetBuffer, 255);
-    if (len > 0) packetBuffer[len] = 0;
+    if (len > 0) {
+        packetBuffer[len] = 0;
+        state = 0;
+    }
 
     for (int i = 0; i < NUM_PX; i++) {
         //todo: remove this 
