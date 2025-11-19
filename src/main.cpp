@@ -1,5 +1,7 @@
 #include <WiFi.h>
 #include <EEPROM.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 #include "Initialize.h"
 #include "Globals.h"
 #include "UDPHandler.h"
@@ -133,6 +135,61 @@ void setup() {
   Udp.begin(LOCAL_PORT);
   // webServerSetupLogic(apName, apPass);
   setupElegantOTATask();  // Start the OTA task - todo: is this going to conflict with my own webserver above???
+  
+  // Send check-in to SmartPoi API
+  sendSmartPoiCheckin();
+  
+}
+
+void sendSmartPoiCheckin() {
+  // Don't send check-in in AP mode (wifiModeChooser == 1)
+  if (wifiModeChooser == 1) {
+    Serial.println("AP mode detected, skipping SmartPoi check-in");
+    return;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    
+    // Begin the HTTP request
+    http.begin("https://smartpoifirmware.circusscientist.com/api/smartpoi-checkin");
+    
+    // Set timeout to 5000ms to avoid blocking too long
+    http.setTimeout(5000);
+    
+    // Send GET request
+    int httpResponseCode = http.GET();
+    
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("SmartPoi API Response: " + response);
+      
+      // Try to parse JSON response
+      try {
+        DynamicJsonDocument doc(1024);
+        DeserializationError error = deserializeJson(doc, response);
+        
+        if (!error) {
+          const char* status = doc["status"];
+          const char* message = doc["message"];
+          const char* timestamp = doc["timestamp"];
+          const char* ip = doc["ip"];
+          
+          Serial.printf("Check-in successful - Status: %s, IP: %s\n", status, ip);
+        } else {
+          Serial.println("Failed to parse JSON response");
+        }
+      } catch (...) {
+        Serial.println("Error parsing JSON response");
+      }
+    } else {
+      Serial.printf("HTTP GET failed, error: %s\n", http.errorToString(httpResponseCode).c_str());
+    }
+    
+    http.end();
+  } else {
+    Serial.println("WiFi not connected, skipping SmartPoi check-in");
+  }
 }
 
 void loop() {
