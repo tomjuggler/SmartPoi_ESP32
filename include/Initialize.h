@@ -15,4 +15,5 @@ void handleDNSServer();
 void fastLEDInit();
 void fastLEDIndicate();
 void fastLEDIndicateFast();
+void sendSmartPoiCheckin();
 #endif
