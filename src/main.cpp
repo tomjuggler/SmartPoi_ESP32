@@ -142,6 +142,12 @@ void setup() {
 }
 
 void sendSmartPoiCheckin() {
+  // Don't send check-in in AP mode (wifiModeChooser == 1)
+  if (wifiModeChooser == 1) {
+    Serial.println("AP mode detected, skipping SmartPoi check-in");
+    return;
+  }
+  
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     
