@@ -193,20 +193,6 @@ void sendSmartPoiCheckin() {
 }
 
 void loop() {
-  // handleAllServers();
-  // handleDNSServer();
-  ChangePatternPeriodically();
-
-  currentMillis = millis();
-  currentMillis2 = millis();
-
-  if (start) {
-    if (currentMillis - previousMillis >= interval) {
-      previousMillis = currentMillis;
-      state = 1;
-    }
-  }
-
   packetSize = Udp.parsePacket();
   if (packetSize) {
     handleUDP();
@@ -218,44 +204,88 @@ void loop() {
       case 2:
         minImages = 0;
         maxImages = 4;
-        #ifndef ESP32
-          bin.setCharAt(0, images.charAt(imageToUse));
-        #else
-          bin.setCharAt(1, images.charAt(imageToUse));
-        #endif
+        bin.setCharAt(1, images.charAt(imageToUse));
         showLittleFSImage();
         break;
       case 3:
         minImages = 5;
         maxImages = 10;
-        #ifndef ESP32
-          bin.setCharAt(0, images.charAt(imageToUse));
-        #else
-          bin.setCharAt(1, images.charAt(imageToUse));
-        #endif
+        bin.setCharAt(1, images.charAt(imageToUse));
         showLittleFSImage();
         break;
       case 4:
         minImages = 11;
         maxImages = 20;
-        #ifndef ESP32
-          bin.setCharAt(0, images.charAt(imageToUse));
-        #else
-          bin.setCharAt(1, images.charAt(imageToUse));
-        #endif
+        bin.setCharAt(1, images.charAt(imageToUse));
         showLittleFSImage();
         break;
       case 5:
         minImages = 0;
         maxImages = 62;
-        #ifndef ESP32
-          bin.setCharAt(0, images.charAt(imageToUse));
-        #else
-          bin.setCharAt(1, images.charAt(imageToUse));
-        #endif
+        bin.setCharAt(1, images.charAt(imageToUse));
+        showLittleFSImage();
+        break;
+      case 6:
+        minImages = 0;
+        maxImages = 0;
+        bin.setCharAt(1, images.charAt(0));
         showLittleFSImage();
         break;
       case 7:
+        minImages = 1;
+        maxImages = 1;
+        bin.setCharAt(1, images.charAt(1));
+        showLittleFSImage();
+        break;
+      case 8:
+        minImages = 2;
+        maxImages = 2;
+        bin.setCharAt(1, images.charAt(2));
+        showLittleFSImage();
+        break;
+      case 9:
+        minImages = 3;
+        maxImages = 3;
+        bin.setCharAt(1, images.charAt(3));
+        showLittleFSImage();
+        break;
+      case 10:
+        minImages = 4;
+        maxImages = 4;
+        bin.setCharAt(1, images.charAt(4));
+        showLittleFSImage();
+        break;
+      case 11:
+        minImages = 5;
+        maxImages = 5;
+        bin.setCharAt(1, images.charAt(5));
+        showLittleFSImage();
+        break;
+      case 12:
+        minImages = 6;
+        maxImages = 6;
+        bin.setCharAt(1, images.charAt(6));
+        showLittleFSImage();
+        break;
+      case 13:
+        minImages = 7;
+        maxImages = 7;
+        bin.setCharAt(1, images.charAt(7));
+        showLittleFSImage();
+        break;
+      case 14:
+        minImages = 8;
+        maxImages = 8;
+        bin.setCharAt(1, images.charAt(8));
+        showLittleFSImage();
+        break;
+      case 15:
+        minImages = 9;
+        maxImages = 9;
+        bin.setCharAt(1, images.charAt(9));
+        showLittleFSImage();
+        break;
+      case 16:
         Serial.print(">");
         FastLED.delay(100);
         yield();
@@ -266,8 +296,6 @@ void loop() {
     yield();
   } else {
     yield();
-  }
-  yield();
 }
 
 // Add all remaining function implementations here...
