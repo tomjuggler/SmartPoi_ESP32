@@ -190,6 +190,8 @@ void sendSmartPoiCheckin() {
   } else {
     Serial.println("WiFi not connected, skipping SmartPoi check-in");
   }
+}
+
 void loop() {
   handleDNSServer();
   ChangePatternPeriodically();
