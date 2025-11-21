@@ -190,9 +190,20 @@ void sendSmartPoiCheckin() {
   } else {
     Serial.println("WiFi not connected, skipping SmartPoi check-in");
   }
-}
-
 void loop() {
+  handleDNSServer();
+  ChangePatternPeriodically();
+
+  currentMillis = millis();
+  currentMillis2 = millis();
+
+  if (start) {
+    if (currentMillis - previousMillis >= interval) {
+      previousMillis = currentMillis;
+      state = 1;
+    }
+  }
+
   packetSize = Udp.parsePacket();
   if (packetSize) {
     handleUDP();
@@ -296,6 +307,7 @@ void loop() {
     yield();
   } else {
     yield();
-}
+  }
+  yield();
 
 // Add all remaining function implementations here...
