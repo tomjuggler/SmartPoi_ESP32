@@ -193,7 +193,8 @@ void sendSmartPoiCheckin() {
 }
 
 void loop() {
-  handleDNSServer();
+  // handleAllServers();
+  // handleDNSServer();
   ChangePatternPeriodically();
 
   currentMillis = millis();
