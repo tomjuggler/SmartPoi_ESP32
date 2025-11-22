@@ -207,11 +207,13 @@ void loop() {
     }
   }
 
-  packetSize = Udp.parsePacket();
-  if (packetSize) {
-    handleUDP();
-  } else if (!packetSize && state == 1 && !uploadInProgress) {
+   if (state == 1 && !uploadInProgress) {
     switch (pattern) {
+      case 0:
+        packetSize = Udp.parsePacket();
+        if (packetSize) {
+          handleUDP();
+        }
       case 1:
         funColourJam();
         break;
