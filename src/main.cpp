@@ -238,70 +238,74 @@ void loop() {
         bin.setCharAt(1, images.charAt(imageToUse));
         showLittleFSImage();
         break;
-      case 6:
+      case 6: 
+        //todo: on/off switch change setting here! 
+        yield();
+        break;
+      case 7:
+        Serial.print(">");
+        FastLED.delay(100);
+        yield();
+        break;
+      case 8:
         minImages = 0;
         maxImages = 0;
         bin.setCharAt(1, images.charAt(0));
         showLittleFSImage();
         break;
-      case 7:
+      case 9:
         minImages = 1;
         maxImages = 1;
         bin.setCharAt(1, images.charAt(1));
         showLittleFSImage();
         break;
-      case 8:
+      case 10:
         minImages = 2;
         maxImages = 2;
         bin.setCharAt(1, images.charAt(2));
         showLittleFSImage();
         break;
-      case 9:
+      case 11:
         minImages = 3;
         maxImages = 3;
         bin.setCharAt(1, images.charAt(3));
         showLittleFSImage();
         break;
-      case 10:
+      case 12:
         minImages = 4;
         maxImages = 4;
         bin.setCharAt(1, images.charAt(4));
         showLittleFSImage();
         break;
-      case 11:
+      case 13:
         minImages = 5;
         maxImages = 5;
         bin.setCharAt(1, images.charAt(5));
         showLittleFSImage();
         break;
-      case 12:
+      case 14:
         minImages = 6;
         maxImages = 6;
         bin.setCharAt(1, images.charAt(6));
         showLittleFSImage();
         break;
-      case 13:
+      case 15:
         minImages = 7;
         maxImages = 7;
         bin.setCharAt(1, images.charAt(7));
         showLittleFSImage();
         break;
-      case 14:
+      case 16:
         minImages = 8;
         maxImages = 8;
         bin.setCharAt(1, images.charAt(8));
         showLittleFSImage();
         break;
-      case 15:
+      case 17:
         minImages = 9;
         maxImages = 9;
         bin.setCharAt(1, images.charAt(9));
         showLittleFSImage();
-        break;
-      case 16:
-        Serial.print(">");
-        FastLED.delay(100);
-        yield();
         break;
       default:
         yield();
