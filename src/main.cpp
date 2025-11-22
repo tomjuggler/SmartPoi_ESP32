@@ -307,6 +307,318 @@ void loop() {
         bin.setCharAt(1, images.charAt(9));
         showLittleFSImage();
         break;
+      case 18:
+        minImages = 10;
+        maxImages = 10;
+        bin.setCharAt(1, images.charAt(10));
+        showLittleFSImage();
+        break;
+      case 19:
+        minImages = 11;
+        maxImages = 11;
+        bin.setCharAt(1, images.charAt(11));
+        showLittleFSImage();
+        break;
+      case 20:
+        minImages = 12;
+        maxImages = 12;
+        bin.setCharAt(1, images.charAt(12));
+        showLittleFSImage();
+        break;
+      case 21:
+        minImages = 13;
+        maxImages = 13;
+        bin.setCharAt(1, images.charAt(13));
+        showLittleFSImage();
+        break;
+      case 22:
+        minImages = 14;
+        maxImages = 14;
+        bin.setCharAt(1, images.charAt(14));
+        showLittleFSImage();
+        break;
+      case 23:
+        minImages = 15;
+        maxImages = 15;
+        bin.setCharAt(1, images.charAt(15));
+        showLittleFSImage();
+        break;
+      case 24:
+        minImages = 16;
+        maxImages = 16;
+        bin.setCharAt(1, images.charAt(16));
+        showLittleFSImage();
+        break;
+      case 25:
+        minImages = 17;
+        maxImages = 17;
+        bin.setCharAt(1, images.charAt(17));
+        showLittleFSImage();
+        break;
+      case 26:
+        minImages = 18;
+        maxImages = 18;
+        bin.setCharAt(1, images.charAt(18));
+        showLittleFSImage();
+        break;
+      case 27:
+        minImages = 19;
+        maxImages = 19;
+        bin.setCharAt(1, images.charAt(19));
+        showLittleFSImage();
+        break;
+      case 28:
+        minImages = 20;
+        maxImages = 20;
+        bin.setCharAt(1, images.charAt(20));
+        showLittleFSImage();
+        break;
+      case 29:
+        minImages = 21;
+        maxImages = 21;
+        bin.setCharAt(1, images.charAt(21));
+        showLittleFSImage();
+        break;
+      case 30:
+        minImages = 22;
+        maxImages = 22;
+        bin.setCharAt(1, images.charAt(22));
+        showLittleFSImage();
+        break;
+      case 31:
+        minImages = 23;
+        maxImages = 23;
+        bin.setCharAt(1, images.charAt(23));
+        showLittleFSImage();
+        break;
+      case 32:
+        minImages = 24;
+        maxImages = 24;
+        bin.setCharAt(1, images.charAt(24));
+        showLittleFSImage();
+        break;
+      case 33:
+        minImages = 25;
+        maxImages = 25;
+        bin.setCharAt(1, images.charAt(25));
+        showLittleFSImage();
+        break;
+      case 34:
+        minImages = 26;
+        maxImages = 26;
+        bin.setCharAt(1, images.charAt(26));
+        showLittleFSImage();
+        break;
+      case 35:
+        minImages = 27;
+        maxImages = 27;
+        bin.setCharAt(1, images.charAt(27));
+        showLittleFSImage();
+        break;
+      case 36:
+        minImages = 28;
+        maxImages = 28;
+        bin.setCharAt(1, images.charAt(28));
+        showLittleFSImage();
+        break;
+      case 37:
+        minImages = 29;
+        maxImages = 29;
+        bin.setCharAt(1, images.charAt(29));
+        showLittleFSImage();
+        break;
+      case 38:
+        minImages = 30;
+        maxImages = 30;
+        bin.setCharAt(1, images.charAt(30));
+        showLittleFSImage();
+        break;
+      case 39:
+        minImages = 31;
+        maxImages = 31;
+        bin.setCharAt(1, images.charAt(31));
+        showLittleFSImage();
+        break;
+      case 40:
+        minImages = 32;
+        maxImages = 32;
+        bin.setCharAt(1, images.charAt(32));
+        showLittleFSImage();
+        break;
+      case 41:
+        minImages = 33;
+        maxImages = 33;
+        bin.setCharAt(1, images.charAt(33));
+        showLittleFSImage();
+        break;
+      case 42:
+        minImages = 34;
+        maxImages = 34;
+        bin.setCharAt(1, images.charAt(34));
+        showLittleFSImage();
+        break;
+      case 43:
+        minImages = 35;
+        maxImages = 35;
+        bin.setCharAt(1, images.charAt(35));
+        showLittleFSImage();
+        break;
+      case 44:
+        minImages = 36;
+        maxImages = 36;
+        bin.setCharAt(1, images.charAt(36));
+        showLittleFSImage();
+        break;
+      case 45:
+        minImages = 37;
+        maxImages = 37;
+        bin.setCharAt(1, images.charAt(37));
+        showLittleFSImage();
+        break;
+      case 46:
+        minImages = 38;
+        maxImages = 38;
+        bin.setCharAt(1, images.charAt(38));
+        showLittleFSImage();
+        break;
+      case 47:
+        minImages = 39;
+        maxImages = 39;
+        bin.setCharAt(1, images.charAt(39));
+        showLittleFSImage();
+        break;
+      case 48:
+        minImages = 40;
+        maxImages = 40;
+        bin.setCharAt(1, images.charAt(40));
+        showLittleFSImage();
+        break;
+      case 49:
+        minImages = 41;
+        maxImages = 41;
+        bin.setCharAt(1, images.charAt(41));
+        showLittleFSImage();
+        break;
+      case 50:
+        minImages = 42;
+        maxImages = 42;
+        bin.setCharAt(1, images.charAt(42));
+        showLittleFSImage();
+        break;
+      case 51:
+        minImages = 43;
+        maxImages = 43;
+        bin.setCharAt(1, images.charAt(43));
+        showLittleFSImage();
+        break;
+      case 52:
+        minImages = 44;
+        maxImages = 44;
+        bin.setCharAt(1, images.charAt(44));
+        showLittleFSImage();
+        break;
+      case 53:
+        minImages = 45;
+        maxImages = 45;
+        bin.setCharAt(1, images.charAt(45));
+        showLittleFSImage();
+        break;
+      case 54:
+        minImages = 46;
+        maxImages = 46;
+        bin.setCharAt(1, images.charAt(46));
+        showLittleFSImage();
+        break;
+      case 55:
+        minImages = 47;
+        maxImages = 47;
+        bin.setCharAt(1, images.charAt(47));
+        showLittleFSImage();
+        break;
+      case 56:
+        minImages = 48;
+        maxImages = 48;
+        bin.setCharAt(1, images.charAt(48));
+        showLittleFSImage();
+        break;
+      case 57:
+        minImages = 49;
+        maxImages = 49;
+        bin.setCharAt(1, images.charAt(49));
+        showLittleFSImage();
+        break;
+      case 58:
+        minImages = 50;
+        maxImages = 50;
+        bin.setCharAt(1, images.charAt(50));
+        showLittleFSImage();
+        break;
+      case 59:
+        minImages = 51;
+        maxImages = 51;
+        bin.setCharAt(1, images.charAt(51));
+        showLittleFSImage();
+        break;
+      case 60:
+        minImages = 52;
+        maxImages = 52;
+        bin.setCharAt(1, images.charAt(52));
+        showLittleFSImage();
+        break;
+      case 61:
+        minImages = 53;
+        maxImages = 53;
+        bin.setCharAt(1, images.charAt(53));
+        showLittleFSImage();
+        break;
+      case 62:
+        minImages = 54;
+        maxImages = 54;
+        bin.setCharAt(1, images.charAt(54));
+        showLittleFSImage();
+        break;
+      case 63:
+        minImages = 55;
+        maxImages = 55;
+        bin.setCharAt(1, images.charAt(55));
+        showLittleFSImage();
+        break;
+      case 64:
+        minImages = 56;
+        maxImages = 56;
+        bin.setCharAt(1, images.charAt(56));
+        showLittleFSImage();
+        break;
+      case 65:
+        minImages = 57;
+        maxImages = 57;
+        bin.setCharAt(1, images.charAt(57));
+        showLittleFSImage();
+        break;
+      case 66:
+        minImages = 58;
+        maxImages = 58;
+        bin.setCharAt(1, images.charAt(58));
+        showLittleFSImage();
+        break;
+      case 67:
+        minImages = 59;
+        maxImages = 59;
+        bin.setCharAt(1, images.charAt(59));
+        showLittleFSImage();
+        break;
+      case 68:
+        minImages = 60;
+        maxImages = 60;
+        bin.setCharAt(1, images.charAt(60));
+        showLittleFSImage();
+        break;
+      case 69:
+        minImages = 61;
+        maxImages = 61;
+        bin.setCharAt(1, images.charAt(61));
+        showLittleFSImage();
+        break;
       default:
         yield();
     }
