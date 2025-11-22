@@ -255,10 +255,13 @@ void loop()
       bin.setCharAt(1, images.charAt(imageToUse));
       showLittleFSImage();
       break;
-    case 6:
-      // todo: on/off switch change setting here!
-      yield();
-      break;
+    // case 6 handled on startup - switching case. 
+    // todo: update logic so this actually works..
+    // todo: should this work for individual images? 
+    // case 6:
+    //   // todo: on/off switch change setting here!
+    //   yield();
+    //   break;
     case 7:
       Serial.print(">");
       FastLED.delay(100);
