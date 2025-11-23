@@ -165,7 +165,7 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
   if(request->hasArg("patternChooserChange")) {
     int newPatt = request->arg("patternChooserChange").toInt();
     
-    if(newPatt < 0 || newPatt > 7) {
+    if(newPatt < 0 || newPatt > 62) {
         response->setCode(400);
         response->print("{\"Error\":\"Invalid pattern\"}");
         request->send(response);
@@ -183,7 +183,7 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
       FastLED.showColor(CRGB::Black);
       pattern = patternChooser;
     } else {
-      pattern = patternChooser;
+      pattern = patternChooser; 
     }
     
     EEPROM.commit();
