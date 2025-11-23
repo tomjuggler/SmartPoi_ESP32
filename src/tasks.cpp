@@ -182,6 +182,8 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
     else if(newPatt == 7) {
       FastLED.showColor(CRGB::Black);
       pattern = patternChooser;
+    } else {
+      pattern = patternChooser;
     }
     
     EEPROM.commit();
