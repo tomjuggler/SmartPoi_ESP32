@@ -41,13 +41,7 @@ bool checkFileSpace(size_t fileSize) {
  * @return size_t Total space in bytes
  */
 size_t getTotalSpace() {
-#ifdef ESP8266
-    FSInfo fs_info;
-    LittleFS.info(fs_info);
-    return fs_info.totalBytes;
-#elif defined(ESP32)
-    return LittleFS.totalBytes();
-#endif
+  return LittleFS.totalBytes();
 }
 
 /**
@@ -55,13 +49,7 @@ size_t getTotalSpace() {
  * @return size_t Remaining space in bytes
  */
 size_t getRemainingSpace() {
-#ifdef ESP8266
-    FSInfo fs_info;
-    LittleFS.info(fs_info);
-    return fs_info.totalBytes - fs_info.usedBytes;
-#elif defined(ESP32)
-    return LittleFS.totalBytes() - LittleFS.usedBytes();
-#endif
+  return LittleFS.totalBytes() - LittleFS.usedBytes();
 }
 
 /**
@@ -69,13 +57,7 @@ size_t getRemainingSpace() {
  * @return size_t Used space in bytes
  */
 size_t getUsedSpace() {
-#ifdef ESP8266
-    FSInfo fs_info;
-    LittleFS.info(fs_info);
-    return fs_info.usedBytes;
-#elif defined(ESP32)
-    return LittleFS.usedBytes();
-#endif
+  return LittleFS.usedBytes();
 }
 
 String formatBytes(size_t bytes) {
@@ -165,7 +147,7 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
   if(request->hasArg("patternChooserChange")) {
     int newPatt = request->arg("patternChooserChange").toInt();
     
-    if(newPatt < 0 || newPatt > 7) {
+    if(newPatt < 0 || newPatt > 62) {
         response->setCode(400);
         response->print("{\"Error\":\"Invalid pattern\"}");
         request->send(response);
@@ -182,6 +164,8 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
     else if(newPatt == 7) {
       FastLED.showColor(CRGB::Black);
       pattern = patternChooser;
+    } else {
+      pattern = patternChooser; 
     }
     
     EEPROM.commit();
@@ -288,11 +272,7 @@ void handleFileList(AsyncWebServerRequest *request) {
 }
 
 void handleFileRead(AsyncWebServerRequest *request) {
-#ifdef ESP32
   String path = "/" + request->arg("file"); // ESP32 needs leading slash
-#else
-  String path = request->arg("file");
-#endif
 
   if(LittleFS.exists(path)) {
     // Create response with file contents AND headers
