@@ -108,11 +108,7 @@ void setup()
   Serial.println("");
   Serial.println("Started");
 
-#ifdef PLATFORM_ESP32
   EEPROM.begin(512);
-#else
-  EEPROM.begin(512);
-#endif
 
   eepromBrightnessChooser(15);
   eepromRouterOptionChooser(100);
@@ -121,11 +117,7 @@ void setup()
   eepromReadChannelAndAddress(13, 14, 16, 17, 18);
   EEPROM.commit();
 
-#ifdef PLATFORM_ESP32
   bool result = LittleFS.begin(true);
-#else
-  bool result = LittleFS.begin();
-#endif
 
   littleFSLoadSettings();
   checkFilesInSetup();

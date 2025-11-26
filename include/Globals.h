@@ -1,30 +1,27 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+// Platform detection
+#if defined(ESP32)
+  #define PLATFORM_ESP32
+#else
+  #error "Unsupported platform - Support ESP32 C3 or S3 only!"
+#endif
+
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <WiFiUdp.h>
 #include <FastLED.h>
 
-#if defined(PLATFORM_ESP32)
-  #include <WiFi.h>
-  #include <DNSServer.h>
-  #include <WebServer.h>
-  #include <EEPROM.h>
-  #include <WiFiMulti.h>
-  // extern WebServer poiserver;
-  extern WiFiMulti WiFiMulti;
-  extern DNSServer dnsServer;
-#elif defined(PLATFORM_ESP8266)
-  #include <ESP8266WiFi.h>
-  #include <DNSServer.h>
-  #include <ESP8266WebServer.h>
-  #include <EEPROM.h>
-  #include <ESP8266WiFiMulti.h>
-  extern ESP8266WebServer poiserver;
-  extern ESP8266WiFiMulti WiFiMulti;
-  extern DNSServer dnsServer;
-#endif
+
+// #include <WiFi.h>
+// #include <DNSServer.h>
+// #include <WebServer.h>
+// #include <EEPROM.h>
+// #include <WiFiMulti.h>
+// // extern WebServer poiserver;
+// extern WiFiMulti WiFiMulti;
+// extern DNSServer dnsServer;
 
 // Configuration Constants
 constexpr int NUM_LEDS = NUMLEDS; //from platformio.ini
@@ -35,23 +32,8 @@ constexpr unsigned int LOCAL_PORT = 2390;
 constexpr int MAX_PX = MAXPX;
 constexpr int DEFAULT_BRIGHTNESS = 20;
 
-// Platform detection
-#if defined(ESP32)
-  #define PLATFORM_ESP32
-#elif defined(ESP8266)
-  #define PLATFORM_ESP8266
-#else
-  #error "Unsupported platform"
-#endif
-
-#ifdef PLATFORM_ESP32
-  constexpr int DATA_PIN = DATAPIN;
-  constexpr int CLOCK_PIN = CLOCKPIN;
-#else
-  constexpr int DATA_PIN = DATAPIN;
-  constexpr int CLOCK_PIN = CLOCKPIN;
-#endif
-
+constexpr int DATA_PIN = DATAPIN;
+constexpr int CLOCK_PIN = CLOCKPIN;
 
 // Global Extern Variables
 extern CRGB leds[NUM_LEDS];
@@ -97,13 +79,8 @@ extern const char* apPass;
 extern String images; 
 
 // WiFi Mode Constants
-#if defined(PLATFORM_ESP32)
   #define WIFI_STA WIFI_MODE_STA
   #define WIFI_AP WIFI_MODE_AP
-#elif defined(PLATFORM_ESP8266)
-  #define WIFI_STA STATION_MODE
-  #define WIFI_AP SOFTAP_MODE
-#endif
 
 // Shared Functions
 // void fastLEDInit();
