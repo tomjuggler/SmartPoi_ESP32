@@ -8,7 +8,6 @@
 #include "ColourPalette.h"
 #include "ShowLittleFSImage.h"
 #include "TimeFunc.h"
-// #include "WebServerSetup.h"
 #include "tasks.h"
 
 // Global Variable Definitions
@@ -123,8 +122,7 @@ void setup()
   checkFilesInSetup();
   fastLEDIndicate();
   Udp.begin(LOCAL_PORT);
-  // webServerSetupLogic(apName, apPass);
-  setupElegantOTATask(); // Start the OTA task - todo: is this going to conflict with my own webserver above???
+  setupElegantOTATask(); // Start the OTA task - also Web Server for built-in controls
 
   // Send check-in to SmartPoi API
   sendSmartPoiCheckin();
@@ -197,8 +195,6 @@ void sendSmartPoiCheckin()
 
 void loop()
 {
-  // handleAllServers();
-  // handleDNSServer();
   ChangePatternPeriodically();
 
   currentMillis = millis();
@@ -643,4 +639,3 @@ void loop()
   yield();
 }
 
-// Add all remaining function implementations here...
