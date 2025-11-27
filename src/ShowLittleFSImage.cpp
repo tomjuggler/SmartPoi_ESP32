@@ -50,11 +50,7 @@ void showLittleFSImage() {
         if (imageToUse > maxImages) imageToUse = minImages;
         
         // Update bin path for next attempt
-        #ifndef ESP32
-            bin.setCharAt(0, images.charAt(imageToUse));
-        #else
-            bin.setCharAt(1, images.charAt(imageToUse));
-        #endif
+        bin.setCharAt(1, images.charAt(imageToUse));
         
     } while (imageToUse != originalImageToUse && !fileFound);
     
