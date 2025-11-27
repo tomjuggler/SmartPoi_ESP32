@@ -4,6 +4,36 @@
 int cnti = 0;
 
 void showLittleFSImage() {
+    // For patterns 2-5 (range patterns): check if any file exists in the range
+    if (pattern >= 2 && pattern <= 5) {
+        bool anyFileExists = false;
+        
+        // Check all files in the current range
+        for (int i = minImages; i <= maxImages; i++) {
+            String testBin = bin;
+            testBin.setCharAt(1, images.charAt(i));
+                      
+            if (LittleFS.exists(testBin)) {
+                anyFileExists = true;
+                break;
+            }
+        }
+        
+        // If no files exist in the entire range, switch to pattern 1
+        if (!anyFileExists) {
+            pattern = 1;
+            return;
+        }
+    }
+    
+    // For patterns 8+ (single image patterns): check if the specific file exists
+    if (pattern >= 8) {
+        if (!LittleFS.exists(bin)) {
+            pattern = 1;
+            return;
+        }
+    }
+    
     // Try to find a valid file within the current pattern range
     int originalImageToUse = imageToUse;
     bool fileFound = false;
@@ -29,7 +59,8 @@ void showLittleFSImage() {
     } while (imageToUse != originalImageToUse && !fileFound);
     
     if (!fileFound) {
-        // No files found in this pattern range, switch back to pattern 1
+        // This should not happen for patterns 2-5 since we already checked the range
+        // But for safety, switch to pattern 1
         pattern = 1;
         return;
     }
