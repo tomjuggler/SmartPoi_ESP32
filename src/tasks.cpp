@@ -493,6 +493,9 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         fsUploadFile.close();
         delay(10);  // Allow file system operations to complete
         uploadInProgress = false;  // Re-enable FastLED operations
+        
+        // Update current images for the current pattern after file upload
+        updateCurrentImagesForPattern(pattern);
     }
     // Handle aborted uploads
     if(!final && !fsUploadFile) {
