@@ -153,6 +153,11 @@ void updateCurrentImagesForPattern(int pattern) {
       // For patterns 8+, use single character from images
       if(pattern >= 8 && pattern <= 69) {
         tempImages = String(images.charAt(pattern - 8));
+        // For single character patterns, set min/max to 0
+        currentImages = tempImages;
+        minImages = 0;
+        maxImages = 0;
+        return;
       } else {
         tempImages = currentImages; // Keep current
         return;
