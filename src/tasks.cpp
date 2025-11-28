@@ -160,12 +160,30 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
     if(newPatt > 0 && newPatt < 6) {
       pattern = patternChooser;
       EEPROM.write(11, newPatt);
+      // Update currentImages for the new pattern
+      if (!updateCurrentImagesForPattern(newPatt)) {
+        // No files available for this pattern, switch to pattern 1
+        pattern = 1;
+        patternChooser = 1;
+        EEPROM.write(10, 1);
+        EEPROM.write(11, 1);
+      }
     }
     else if(newPatt == 7) {
       FastLED.showColor(CRGB::Black);
       pattern = patternChooser;
     } else {
-      pattern = patternChooser; 
+      pattern = patternChooser;
+      // For patterns 8+, update currentImages and verify file exists
+      if (pattern >= 8 && pattern <= 69) {
+        if (!updateCurrentImagesForPattern(pattern)) {
+          // File doesn't exist for this pattern, switch to pattern 1
+          pattern = 1;
+          patternChooser = 1;
+          EEPROM.write(10, 1);
+          EEPROM.write(11, 1);
+        }
+      }
     }
     
     EEPROM.commit();
@@ -389,6 +407,14 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
     if(newPatt > 0 && newPatt < 6) {
       pattern = patternChooser;
       EEPROM.write(11, newPatt);
+      // Update currentImages for the new pattern
+      if (!updateCurrentImagesForPattern(newPatt)) {
+        // No files available for this pattern, switch to pattern 1
+        pattern = 1;
+        patternChooser = 1;
+        EEPROM.write(10, 1);
+        EEPROM.write(11, 1);
+      }
     }
   }
 
@@ -467,6 +493,9 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         fsUploadFile.close();
         delay(10);  // Allow file system operations to complete
         uploadInProgress = false;  // Re-enable FastLED operations
+        
+        // Update current images for the current pattern after file upload
+        updateCurrentImagesForPattern(pattern);
     }
     // Handle aborted uploads
     if(!final && !fsUploadFile) {

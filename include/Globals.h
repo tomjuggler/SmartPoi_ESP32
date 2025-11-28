@@ -76,7 +76,15 @@ extern IPAddress ipGatewayauxillary;
 extern IPAddress ipSubnet;
 extern const char* apName;
 extern const char* apPass;
-extern String images; 
+extern String images;
+extern String images2;
+extern String images3;
+extern String images4;
+extern String images5;
+extern String currentImages;
+
+// Function declarations
+extern bool updateCurrentImagesForPattern(int pattern); 
 
 // WiFi Mode Constants
   #define WIFI_STA WIFI_MODE_STA
