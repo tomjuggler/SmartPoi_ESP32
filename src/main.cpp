@@ -164,22 +164,27 @@ void updateCurrentImagesForPattern(int pattern) {
       }
   }
 
-  // Check if any files exist for this pattern
+  // Check if any files exist for this pattern and build filtered list
   bool anyFileExists = false;
   String testBin = bin;
+  String filteredImages = "";
 
   for(int i = 0; i < tempImages.length(); i++) {
     testBin.setCharAt(1, tempImages.charAt(i));
     if(LittleFS.exists(testBin)) {
       anyFileExists = true;
-      break;
+      filteredImages += tempImages.charAt(i);
     }
   }
 
   if(anyFileExists) {
-    currentImages = tempImages;
+    currentImages = filteredImages;
     minImages = 0;
     maxImages = currentImages.length() - 1;
+    // Reset imageToUse if it's out of bounds
+    if (imageToUse >= currentImages.length()) {
+      imageToUse = 0;
+    }
   } else {
     // No files available, switch to pattern 1
     pattern = 1;
@@ -283,21 +288,37 @@ void loop()
       break;
     case 2:
       updateCurrentImagesForPattern(2);
+      // Ensure imageToUse is within bounds of currentImages
+      if (imageToUse >= currentImages.length()) {
+        imageToUse = 0;
+      }
       bin.setCharAt(1, currentImages.charAt(imageToUse));
       showLittleFSImage();
       break;
     case 3:
       updateCurrentImagesForPattern(3);
+      // Ensure imageToUse is within bounds of currentImages
+      if (imageToUse >= currentImages.length()) {
+        imageToUse = 0;
+      }
       bin.setCharAt(1, currentImages.charAt(imageToUse));
       showLittleFSImage();
       break;
     case 4:
       updateCurrentImagesForPattern(4);
+      // Ensure imageToUse is within bounds of currentImages
+      if (imageToUse >= currentImages.length()) {
+        imageToUse = 0;
+      }
       bin.setCharAt(1, currentImages.charAt(imageToUse));
       showLittleFSImage();
       break;
     case 5:
       updateCurrentImagesForPattern(5);
+      // Ensure imageToUse is within bounds of currentImages
+      if (imageToUse >= currentImages.length()) {
+        imageToUse = 0;
+      }
       bin.setCharAt(1, currentImages.charAt(imageToUse));
       showLittleFSImage();
       break;
