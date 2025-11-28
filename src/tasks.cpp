@@ -161,7 +161,13 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
       pattern = patternChooser;
       EEPROM.write(11, newPatt);
       // Update currentImages for the new pattern
-      updateCurrentImagesForPattern(newPatt);
+      if (!updateCurrentImagesForPattern(newPatt)) {
+        // No files available for this pattern, switch to pattern 1
+        pattern = 1;
+        patternChooser = 1;
+        EEPROM.write(10, 1);
+        EEPROM.write(11, 1);
+      }
     }
     else if(newPatt == 7) {
       FastLED.showColor(CRGB::Black);
@@ -391,6 +397,14 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
     if(newPatt > 0 && newPatt < 6) {
       pattern = patternChooser;
       EEPROM.write(11, newPatt);
+      // Update currentImages for the new pattern
+      if (!updateCurrentImagesForPattern(newPatt)) {
+        // No files available for this pattern, switch to pattern 1
+        pattern = 1;
+        patternChooser = 1;
+        EEPROM.write(10, 1);
+        EEPROM.write(11, 1);
+      }
     }
   }
 

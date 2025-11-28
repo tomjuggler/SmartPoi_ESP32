@@ -133,7 +133,7 @@ void setup()
   sendSmartPoiCheckin();
 }
 
-void updateCurrentImagesForPattern(int pattern) {
+bool updateCurrentImagesForPattern(int pattern) {
   String tempImages;
 
   switch(pattern) {
@@ -157,10 +157,10 @@ void updateCurrentImagesForPattern(int pattern) {
         currentImages = tempImages;
         minImages = 0;
         maxImages = 0;
-        return;
+        return true;
       } else {
         tempImages = currentImages; // Keep current
-        return;
+        return true;
       }
   }
 
@@ -185,12 +185,10 @@ void updateCurrentImagesForPattern(int pattern) {
     if (imageToUse >= currentImages.length()) {
       imageToUse = 0;
     }
+    return true;
   } else {
-    // No files available, switch to pattern 1
-    pattern = 1;
-    patternChooser = 1;
-    EEPROM.write(10, 1);
-    EEPROM.commit();
+    // No files available, return false to indicate pattern should be switched
+    return false;
   }
 }
 
@@ -287,7 +285,14 @@ void loop()
       funColourJam();
       break;
     case 2:
-      updateCurrentImagesForPattern(2);
+      if (!updateCurrentImagesForPattern(2)) {
+        // No files available, switch to pattern 1
+        pattern = 1;
+        patternChooser = 1;
+        EEPROM.write(10, 1);
+        EEPROM.commit();
+        break;
+      }
       // Ensure imageToUse is within bounds of currentImages
       if (imageToUse >= currentImages.length()) {
         imageToUse = 0;
@@ -296,7 +301,14 @@ void loop()
       showLittleFSImage();
       break;
     case 3:
-      updateCurrentImagesForPattern(3);
+      if (!updateCurrentImagesForPattern(3)) {
+        // No files available, switch to pattern 1
+        pattern = 1;
+        patternChooser = 1;
+        EEPROM.write(10, 1);
+        EEPROM.commit();
+        break;
+      }
       // Ensure imageToUse is within bounds of currentImages
       if (imageToUse >= currentImages.length()) {
         imageToUse = 0;
@@ -305,7 +317,14 @@ void loop()
       showLittleFSImage();
       break;
     case 4:
-      updateCurrentImagesForPattern(4);
+      if (!updateCurrentImagesForPattern(4)) {
+        // No files available, switch to pattern 1
+        pattern = 1;
+        patternChooser = 1;
+        EEPROM.write(10, 1);
+        EEPROM.commit();
+        break;
+      }
       // Ensure imageToUse is within bounds of currentImages
       if (imageToUse >= currentImages.length()) {
         imageToUse = 0;
@@ -314,7 +333,14 @@ void loop()
       showLittleFSImage();
       break;
     case 5:
-      updateCurrentImagesForPattern(5);
+      if (!updateCurrentImagesForPattern(5)) {
+        // No files available, switch to pattern 1
+        pattern = 1;
+        patternChooser = 1;
+        EEPROM.write(10, 1);
+        EEPROM.commit();
+        break;
+      }
       // Ensure imageToUse is within bounds of currentImages
       if (imageToUse >= currentImages.length()) {
         imageToUse = 0;

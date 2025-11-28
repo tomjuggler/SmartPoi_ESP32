@@ -84,7 +84,7 @@ extern String images5;
 extern String currentImages;
 
 // Function declarations
-extern void updateCurrentImagesForPattern(int pattern); 
+extern bool updateCurrentImagesForPattern(int pattern); 
 
 // WiFi Mode Constants
   #define WIFI_STA WIFI_MODE_STA
