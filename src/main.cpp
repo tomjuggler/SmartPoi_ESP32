@@ -292,17 +292,6 @@ void loop()
     case 1:
       funColourJam();
       break;
-    case 7:
-      FastLED.showColor(CRGB::Black);
-      break;
-    case 8:
-      bin.setCharAt(1, currentImages.charAt(0));
-      showLittleFSImage();
-      break;
-    case 9:
-      bin.setCharAt(1, currentImages.charAt(0));
-      showLittleFSImage();
-      break;
     case 2:
       // Ensure imageToUse is within bounds of currentImages
       if (imageToUse >= currentImages.length()) {
@@ -333,6 +322,17 @@ void loop()
         imageToUse = 0;
       }
       bin.setCharAt(1, currentImages.charAt(imageToUse));
+      showLittleFSImage();
+      break;
+    case 7:
+      FastLED.showColor(CRGB::Black);
+      break;
+    case 8:
+      bin.setCharAt(1, currentImages.charAt(0));
+      showLittleFSImage();
+      break;
+    case 9:
+      bin.setCharAt(1, currentImages.charAt(0));
       showLittleFSImage();
       break;
     case 10:
