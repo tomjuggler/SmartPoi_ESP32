@@ -8,6 +8,7 @@
  * Uses global timing variables and pattern/image indexes from main.cpp
  * Maintains original functionality with proper PlatformIO organization
  */
+//todo: something here is conflicting with ShowLittleFSImage.cpp. Fix! 
 void ChangePatternPeriodically()
 {
   unsigned long currentMillis3 = millis();
