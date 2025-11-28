@@ -13,11 +13,20 @@ void ChangePatternPeriodically()
   unsigned long currentMillis3 = millis();
   if (currentMillis3 - previousMillis3 >= interval)
   {
+    if(pattern >= 8){
+      return; //don't increment for patterns 8+
+    }
     imageToUse++;
     previousMillis3 = currentMillis3;
-    if (imageToUse > maxImages)
-    {
-      imageToUse = minImages;
+    // if (imageToUse > maxImages)
+    // {
+    //   imageToUse = minImages;
+    // }
+    if(imageToUse > maxImages){
+        imageToUse = minImages;
+        bin.setCharAt(1, images.charAt(minImages));
+    } else {
+        bin.setCharAt(1, images.charAt(imageToUse));
     }
     // Serial.print("Changed to image: ");
     // Serial.print(imageToUse);
