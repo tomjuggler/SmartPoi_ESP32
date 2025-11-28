@@ -332,9 +332,6 @@ void loop()
       showLittleFSImage();
       break;
     case 9:
-      bin.setCharAt(1, currentImages.charAt(0));
-      showLittleFSImage();
-      break;
     case 10:
     case 11:
     case 12:
@@ -398,8 +395,6 @@ void loop()
       bin.setCharAt(1, currentImages.charAt(0));
       showLittleFSImage();
       break;
-    default:
-      yield();
     }
     yield();
   }
