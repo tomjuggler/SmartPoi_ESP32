@@ -16,9 +16,9 @@ void showLittleFSImage() {
         // If no file is found, go to the next image
         imageToUse++;
         if(imageToUse > maxImages){
-            bin.setCharAt(1, images.charAt(minImages));
+            bin.setCharAt(1, currentImages.charAt(minImages));
         } else {
-            bin.setCharAt(1, images.charAt(imageToUse));
+            bin.setCharAt(1, currentImages.charAt(imageToUse));
         }
         
         // FastLED.showColor(CRGB::Blue); // Display error color (optional)
@@ -37,9 +37,9 @@ void showLittleFSImage() {
             FastLED.showColor(CRGB::Blue); // Show blue color as error indicator
             imageToUse++;
             if(imageToUse > maxImages){
-                bin.setCharAt(1, images.charAt(minImages));
+                bin.setCharAt(1, currentImages.charAt(minImages));
             } else {
-                bin.setCharAt(1, images.charAt(imageToUse));
+                bin.setCharAt(1, currentImages.charAt(imageToUse));
             }
             return;
         }

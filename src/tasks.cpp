@@ -160,6 +160,8 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
     if(newPatt > 0 && newPatt < 6) {
       pattern = patternChooser;
       EEPROM.write(11, newPatt);
+      // Update currentImages for the new pattern
+      updateCurrentImagesForPattern(newPatt);
     }
     else if(newPatt == 7) {
       FastLED.showColor(CRGB::Black);

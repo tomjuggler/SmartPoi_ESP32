@@ -83,6 +83,11 @@ int imageToUse = 0;
 int maxImages = 52;
 int minImages = 0;
 String images = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+String images2 = "abcde";
+String images3 = "fghij";
+String images4 = "klmnopqrst";
+String images5 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+String currentImages = images;
 #ifndef ESP32
 String bin = "a.bin";
 #else
@@ -126,6 +131,57 @@ void setup()
 
   // Send check-in to SmartPoi API
   sendSmartPoiCheckin();
+}
+
+void updateCurrentImagesForPattern(int pattern) {
+  String tempImages;
+
+  switch(pattern) {
+    case 2:
+      tempImages = images2;
+      break;
+    case 3:
+      tempImages = images3;
+      break;
+    case 4:
+      tempImages = images4;
+      break;
+    case 5:
+      tempImages = images5;
+      break;
+    default:
+      // For patterns 8+, use single character from images
+      if(pattern >= 8 && pattern <= 69) {
+        tempImages = String(images.charAt(pattern - 8));
+      } else {
+        tempImages = currentImages; // Keep current
+        return;
+      }
+  }
+
+  // Check if any files exist for this pattern
+  bool anyFileExists = false;
+  String testBin = bin;
+
+  for(int i = 0; i < tempImages.length(); i++) {
+    testBin.setCharAt(1, tempImages.charAt(i));
+    if(LittleFS.exists(testBin)) {
+      anyFileExists = true;
+      break;
+    }
+  }
+
+  if(anyFileExists) {
+    currentImages = tempImages;
+    minImages = 0;
+    maxImages = currentImages.length() - 1;
+  } else {
+    // No files available, switch to pattern 1
+    pattern = 1;
+    patternChooser = 1;
+    EEPROM.write(10, 1);
+    EEPROM.commit();
+  }
 }
 
 void sendSmartPoiCheckin()
@@ -189,10 +245,6 @@ void sendSmartPoiCheckin()
   }
   else
   {
-    Serial.println("WiFi not connected, skipping SmartPoi check-in");
-  }
-}
-
 void loop()
 {
   ChangePatternPeriodically();
@@ -216,55 +268,28 @@ void loop()
       {
         handleUDP();
       }
+      break;
     case 1:
       funColourJam();
       break;
     case 2:
-      minImages = 0;
-      maxImages = 4;
-      bin.setCharAt(1, images.charAt(imageToUse));
+      updateCurrentImagesForPattern(2);
+      bin.setCharAt(1, currentImages.charAt(imageToUse));
       showLittleFSImage();
       break;
     case 3:
-      minImages = 5;
-      maxImages = 10;
-      bin.setCharAt(1, images.charAt(imageToUse));
+      updateCurrentImagesForPattern(3);
+      bin.setCharAt(1, currentImages.charAt(imageToUse));
       showLittleFSImage();
       break;
     case 4:
-      minImages = 11;
-      maxImages = 20;
-      bin.setCharAt(1, images.charAt(imageToUse));
+      updateCurrentImagesForPattern(4);
+      bin.setCharAt(1, currentImages.charAt(imageToUse));
       showLittleFSImage();
       break;
     case 5:
-      minImages = 0;
-      maxImages = 62;
-      bin.setCharAt(1, images.charAt(imageToUse));
-      showLittleFSImage();
-      break;
-    // case 6 handled on startup - switching case. 
-    // todo: update logic so this actually works..
-    // todo: should this work for individual images? 
-    // case 6:
-    //   // todo: on/off switch change setting here!
-    //   yield();
-    //   break;
-    case 7:
-      Serial.print(">");
-      FastLED.delay(100);
-      yield();
-      break;
-    case 8:
-      minImages = 0;
-      maxImages = 0;
-      bin.setCharAt(1, images.charAt(0));
-      showLittleFSImage();
-      break;
-    case 9:
-      minImages = 1;
-      maxImages = 1;
-      bin.setCharAt(1, images.charAt(1));
+      updateCurrentImagesForPattern(5);
+      bin.setCharAt(1, currentImages.charAt(imageToUse));
       showLittleFSImage();
       break;
     case 10:
@@ -638,4 +663,3 @@ void loop()
   }
   yield();
 }
-
