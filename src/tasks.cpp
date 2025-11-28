@@ -173,7 +173,17 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
       FastLED.showColor(CRGB::Black);
       pattern = patternChooser;
     } else {
-      pattern = patternChooser; 
+      pattern = patternChooser;
+      // For patterns 8+, update currentImages and verify file exists
+      if (pattern >= 8 && pattern <= 69) {
+        if (!updateCurrentImagesForPattern(pattern)) {
+          // File doesn't exist for this pattern, switch to pattern 1
+          pattern = 1;
+          patternChooser = 1;
+          EEPROM.write(10, 1);
+          EEPROM.write(11, 1);
+        }
+      }
     }
     
     EEPROM.commit();
