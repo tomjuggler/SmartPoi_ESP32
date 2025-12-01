@@ -114,7 +114,7 @@ void setup()
 
   EEPROM.begin(512);
 
-  eepromBrightnessChooser(15);
+  // eepromBrightnessChooser(15); //setting brightness to 20 for startup now. 
   eepromRouterOptionChooser(100);
   eepromWifiModeChooser(5);
   eepromPatternChooser(10);

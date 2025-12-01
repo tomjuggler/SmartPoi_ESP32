@@ -12,8 +12,6 @@ WiFiMulti WiFiMulti;
 DNSServer dnsServer;
 
 
-// #define LED_APA102 true
-
 void eepromBrightnessChooser(int addr)
 {
     int readBRTeprom = EEPROM.read(addr);
@@ -198,8 +196,8 @@ void fastLEDInit()
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
 #endif
 
-    FastLED.setBrightness(newBrightness); // should be low figure here, for startup battery saving...
-
+    // FastLED.setBrightness(newBrightness); // should be low figure here, for startup battery saving...
+    FastLED.setBrightness(20);
     FastLED.showColor(CRGB::Black);
 
     // if DNSServer is started with "*" for domain name, it will reply with
