@@ -31,6 +31,8 @@ constexpr unsigned int LOCAL_PORT = 2390;
 // constexpr int MAX_PX = 12240; //moved to platformio.ini
 constexpr int MAX_PX = MAXPX;
 constexpr int DEFAULT_BRIGHTNESS = 20;
+constexpr int BRIGHTNESS_RAMP_INTERVAL = 20;  // milliseconds
+constexpr int BRIGHTNESS_RAMP_STEP = 5;       // brightness change per interval
 
 constexpr int DATA_PIN = DATAPIN;
 constexpr int CLOCK_PIN = CLOCKPIN;
@@ -39,6 +41,7 @@ constexpr int CLOCK_PIN = CLOCKPIN;
 extern CRGB leds[NUM_LEDS];
 extern WiFiUDP Udp;
 extern int newBrightness;  // Declaration for brightness control variable
+extern int targetBrightness;  // Declaration for target brightness
 extern bool routerOption;  // Declaration for router configuration flag
 extern int wifiModeChooser;  // Declaration for WiFi mode selection
 extern int patternChooser;
