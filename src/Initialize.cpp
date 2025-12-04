@@ -16,11 +16,12 @@ void eepromBrightnessChooser(int addr)
 {
     int readBRTeprom = EEPROM.read(addr);
     newBrightness = readBRTeprom;
-    if (newBrightness > 254 || newBrightness < 1)
+    if (newBrightness > 255 || newBrightness < 20)
     {
         EEPROM.write(15, DEFAULT_BRIGHTNESS);
         newBrightness = DEFAULT_BRIGHTNESS;
     }
+    targetBrightness = newBrightness;  // Set target to same value for immediate effect
     FastLED.setBrightness(newBrightness);
     FastLED.showColor(CRGB::Black);
 }
@@ -196,8 +197,7 @@ void fastLEDInit()
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
 #endif
 
-    // FastLED.setBrightness(newBrightness); // should be low figure here, for startup battery saving...
-    FastLED.setBrightness(20);
+    FastLED.setBrightness(newBrightness); // should be low figure here, for startup battery saving...
     FastLED.showColor(CRGB::Black);
 
     // if DNSServer is started with "*" for domain name, it will reply with

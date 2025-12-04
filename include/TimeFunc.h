@@ -14,5 +14,6 @@ extern int minImages;
 extern int pattern;
 
 void ChangePatternPeriodically();
+void checkBrightness();
 
 #endif

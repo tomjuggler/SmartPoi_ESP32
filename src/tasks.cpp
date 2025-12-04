@@ -247,10 +247,10 @@ void handleBrightness(AsyncWebServerRequest* request) {
   response->addHeader("Access-Control-Allow-Credentials", "true");
 
   if(request->hasArg("brt")) {
-    newBrightness = constrain(request->arg("brt").toInt(), 20, 255);
-    FastLED.setBrightness(newBrightness);
-    FastLED.show();
-    EEPROM.write(15, newBrightness);
+    targetBrightness = constrain(request->arg("brt").toInt(), 20, 255);
+    // Note: newBrightness will gradually ramp to targetBrightness via checkBrightness()
+    // Save target brightness to EEPROM for persistence
+    EEPROM.write(15, targetBrightness);
     EEPROM.commit();
     response->setCode(200);
     response->print("{\"Success\":\"Brightness updated\"}");

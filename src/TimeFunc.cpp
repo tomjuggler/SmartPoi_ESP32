@@ -36,3 +36,47 @@ void ChangePatternPeriodically()
   }
   yield();
 }
+
+/**
+ * @brief Gradually ramps brightness towards targetBrightness.
+ * 
+ * Called every 20ms, adjusts newBrightness by BRIGHTNESS_RAMP_STEP (5)
+ * towards targetBrightness until they match.
+ */
+void checkBrightness()
+{
+  static unsigned long previousBrightnessCheck = 0;
+  unsigned long currentMillis = millis();
+  
+  if (currentMillis - previousBrightnessCheck >= BRIGHTNESS_RAMP_INTERVAL)
+  {
+    previousBrightnessCheck = currentMillis;
+    
+    if (newBrightness != targetBrightness)
+    {
+      int difference = targetBrightness - newBrightness;
+      int step = BRIGHTNESS_RAMP_STEP;
+      
+      if (abs(difference) < step)
+      {
+        // If difference is less than step, set directly to target
+        newBrightness = targetBrightness;
+      }
+      else if (difference > 0)
+      {
+        newBrightness += step;
+      }
+      else
+      {
+        newBrightness -= step;
+      }
+      
+      // Ensure brightness stays within valid range (20-255)
+      newBrightness = constrain(newBrightness, 20, 255);
+      
+      // Apply the new brightness
+      FastLED.setBrightness(newBrightness);
+      FastLED.show();
+    }
+  }
+}
