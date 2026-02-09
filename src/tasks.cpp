@@ -654,8 +654,7 @@ void elegantOTATask(void *pvParameters)
                     String(addrNumB) + "," + 
                     String(addrNumC) + "," + 
                     String(addrNumD) + "," + 
-                    String(patternChooser) + "," +
-                    String(NUM_PX);
+                    String(patternChooser);
     settings.close();
     response->print(content);
     request->send(response);
