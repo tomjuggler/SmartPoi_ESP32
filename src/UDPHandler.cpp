@@ -6,7 +6,7 @@
 extern unsigned long currentMillis2;
 extern unsigned long previousMillis2;
 constexpr int interval = 1000;  // 1 second default interval
-extern bool checkit;
+// extern bool checkit;
 extern int len;
 extern uint8_t packetBuffer[255];
 extern uint8_t Y;
@@ -19,22 +19,23 @@ extern bool channelChange;
 
 void handleUDP() {
     static unsigned long lastPacketTime = 0;
-    const unsigned long UDP_TIMEOUT = 2000; // 2 seconds timeout
+    // const unsigned long UDP_TIMEOUT = 2000; // 2 seconds timeout - doing this in main loop() now!
     
-    if (currentMillis2 - previousMillis2 > interval * 2) {
-        previousMillis2 = currentMillis2;
-        checkit = true;
-    }
-    previousMillis2 = currentMillis2;  // Use locally declared timing variables
+    // if (currentMillis2 - previousMillis2 > interval * 2) {
+    //     previousMillis2 = currentMillis2;
+    //     checkit = true;
+    // }
+    // previousMillis2 = currentMillis2;  // Use locally declared timing variables
     
     len = Udp.read(packetBuffer, 255);
     if (len > 0) {
         packetBuffer[len] = 0;
-        state = 0;
+        // state = 0;
         lastPacketTime = currentMillis2;
-    } else if (state == 0 && currentMillis2 - lastPacketTime > UDP_TIMEOUT) {
-        state = 1; // Switch back to LittleFS images after timeout
-    }
+    } 
+    // else if (state == 0 && currentMillis2 - lastPacketTime > UDP_TIMEOUT) {
+    //     state = 1; // Switch back to LittleFS images after timeout
+    // }
 
     for (int i = 0; i < NUM_PX; i++) {
         X = packetBuffer[i] - 127;
