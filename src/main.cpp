@@ -57,7 +57,7 @@ unsigned long previousMillis = 0;
 unsigned long previousMillis2 = 0;
 unsigned long previousMillis3 = 0;
 long interval = 5000;
-bool checkit = false;
+// bool checkit = false;
 bool channelChange = false;
 bool uploadInProgress = false; // Flag to disable FastLED operations during upload
 bool savingToSpiffs = false;
@@ -273,18 +273,18 @@ void loop()
 
   currentMillis = millis();
 
-  if (currentMillis - previousMillis >= interval)
-  {
-    previousMillis = currentMillis;
-    state = 1;
-  }
+  // if (currentMillis - previousMillis >= interval)
+  // {
+  //   previousMillis = currentMillis;
+  //   state = 1;
+  // }
 
-  if (state == 1 && !uploadInProgress)
+  if (!uploadInProgress)
   {
     switch (pattern)
     {
     case 0:
-      currentMillis2 = millis();
+      // currentMillis2 = millis();
       packetSize = Udp.parsePacket();
       if (packetSize)
       {
