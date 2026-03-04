@@ -1,3 +1,4 @@
+---
 schema: https://brainfile.md/v2/board.json
 title: SmartPoi ESP32 LED Controller
 agent:
