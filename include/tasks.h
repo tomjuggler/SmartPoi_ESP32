@@ -13,7 +13,6 @@ extern uint8_t message1Data[MAX_PX];
 class AsyncWebServerRequest;
 
 // Function declarations
-bool checkFileSpace(size_t fileSize);
 void setupElegantOTATask();
 void elegantOTATask(void *pvParameters);
 void handleFileUpload(AsyncWebServerRequest* request, const String& filename, size_t index, uint8_t* data, size_t len, bool final);

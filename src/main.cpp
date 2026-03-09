@@ -30,7 +30,6 @@ int X = 0;
 uint8_t R1 = 0;
 uint8_t G1 = 0;
 uint8_t M1 = 0;
-// bool auxillary = false; //moved to platformio.ini
 int newBrightness = DEFAULT_BRIGHTNESS;
 int targetBrightness = DEFAULT_BRIGHTNESS;
 uint8_t message1Data[MAX_PX];
@@ -57,7 +56,6 @@ unsigned long previousMillis = 0;
 unsigned long previousMillis2 = 0;
 unsigned long previousMillis3 = 0;
 long interval = 5000;
-// bool checkit = false;
 bool channelChange = false;
 bool uploadInProgress = false; // Flag to disable FastLED operations during upload
 bool savingToSpiffs = false;
@@ -66,7 +64,6 @@ const long intervalBetweenFlashy = 5;
 bool black = true;
 bool upDown = true;
 bool lines = true;
-#define UPDATES_PER_SECOND 30000
 int motionSpeed = 1;
 int maxStartIndex = 70;
 int minStartIndex = 0;
@@ -89,14 +86,9 @@ String images3 = "fghij";
 String images4 = "klmnopqrst";
 String images5 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 String currentImages = images;
-#ifndef ESP32
-String bin = "a.bin";
-#else
 String bin = "/a.bin";
-#endif
 int uploadCounter = 1;
 bool wifiEventDetect = false;
-// bool start = true;
 bool routerOption = false;
 volatile unsigned long currentMillis = millis();
 volatile int packetSize;
@@ -273,18 +265,12 @@ void loop()
 
   currentMillis = millis();
 
-  // if (currentMillis - previousMillis >= interval)
-  // {
-  //   previousMillis = currentMillis;
-  //   state = 1;
-  // }
 
   if (!uploadInProgress)
   {
     switch (pattern)
     {
     case 0:
-      // currentMillis2 = millis();
       packetSize = Udp.parsePacket();
       if (packetSize)
       {

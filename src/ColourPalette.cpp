@@ -125,7 +125,7 @@ void ChangePalettePeriodically3()
     if ( secondHand == 100) {
       SetupVariablePalette(CRGB::Green, CRGB::Black, CRGB::Blue, CRGB::Black);
     }
-    if ( secondHand == 60)  {
+    if ( secondHand == 110) {
       SetupVariablePalette5(CRGB::BlueViolet, CRGB::Black, CRGB::Amethyst, CRGB::Black, CRGB::Coral);
     }
     if ( secondHand == 70)  {
