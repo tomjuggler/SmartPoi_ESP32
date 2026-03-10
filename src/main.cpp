@@ -262,7 +262,8 @@ void loop()
 {
   ChangePatternPeriodically();
   checkBrightness();
-
+  handleDNSServer();
+  
   currentMillis = millis();
 
 
