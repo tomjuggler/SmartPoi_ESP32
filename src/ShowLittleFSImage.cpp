@@ -1,11 +1,14 @@
 #include "ShowLittleFSImage.h"
 #include "Globals.h"
+#include "tasks.h"
 
 int cnti = 0;
 
 void showLittleFSImage() {
     // Check if file exists before attempting to open it
-    if (!LittleFS.exists(bin)) {
+    // Extract character from bin string (format: "/x.bin" where x is the character)
+    char patternChar = bin.charAt(1);
+    if (!checkPatternFileExists(patternChar)) {
         // File doesn't exist, handle gracefully
         if (pattern >= 8) {
             pattern = 1;

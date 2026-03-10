@@ -30,3 +30,4 @@ void monitorHeapStatus();
 // Pattern file cache functions (defined in main.cpp)
 void refreshPatternFileCacheEntry(char patternChar);
 void refreshPatternFileCache();
+bool checkPatternFileExists(char patternChar);
