@@ -61,17 +61,19 @@ size_t getUsedSpace() {
 }
 
 // Heap monitoring function
-void logHeapStatus() {
+void monitorHeapStatus() {
   static unsigned long lastHeapLog = 0;
   unsigned long now = millis();
   
   // Log heap status every 30 seconds
   if (now - lastHeapLog > 30000) {
     lastHeapLog = now;
-    Serial.printf("[HEAP] Free: %d, Min Free: %d, Max Alloc: %d\n", 
-                  ESP.getFreeHeap(), 
-                  ESP.getMinFreeHeap(), 
-                  ESP.getMaxAllocHeap());
+    Serial.print("[HEAP] Free: ");
+    Serial.print(ESP.getFreeHeap());
+    Serial.print(", Min Free: ");
+    Serial.print(ESP.getMinFreeHeap());
+    Serial.print(", Max Alloc: ");
+    Serial.println(ESP.getMaxAllocHeap());
   }
 }
 

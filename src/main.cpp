@@ -263,6 +263,7 @@ void loop()
   ChangePatternPeriodically();
   checkBrightness();
   handleDNSServer();
+  monitorHeapStatus(); // Monitor heap usage every loop iteration
   
   currentMillis = millis();
 

@@ -4,11 +4,29 @@
 int cnti = 0;
 
 void showLittleFSImage() {
-    // Open the image file from LittleFS
-    a = LittleFS.open(bin, "r"); // Open every time?
+    // Check if file exists before attempting to open it
+    if (!LittleFS.exists(bin)) {
+        // File doesn't exist, handle gracefully
+        if (pattern >= 8) {
+            pattern = 1;
+            return;
+        }
+        // If no file is found, go to the next image
+        imageToUse++;
+        if(imageToUse > maxImages){
+            bin.setCharAt(1, currentImages.charAt(minImages));
+        } else {
+            bin.setCharAt(1, currentImages.charAt(imageToUse));
+        }
+        return;
+    }
+    
+    // File exists, open it for reading
+    a = LittleFS.open(bin, "r");
 
     if (!a)
     {
+        // File exists but failed to open (unexpected error)
         if (pattern >= 8) {
             pattern = 1;
             return;

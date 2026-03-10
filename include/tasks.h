@@ -25,3 +25,5 @@ void handleFileList(AsyncWebServerRequest* request);
 void handleFileRead(AsyncWebServerRequest* request);
 void handleFileCreate(AsyncWebServerRequest* request);
 void handleFileDelete(AsyncWebServerRequest* request);
+
+void monitorHeapStatus();
