@@ -334,9 +334,15 @@ void handleFileCreate(AsyncWebServerRequest *request) {
     request->send(response);
     return;
   }
+  // Save current pattern and set to 7 (LEDs off) for file operation
+  int savedPattern = pattern;
+  pattern = 7;
   
   File file = LittleFS.open(path, "w");
   file.close();
+  
+  // Restore saved pattern
+  pattern = savedPattern;
   response->setCode(200);
   response->print("Created");
   request->send(response);
@@ -356,13 +362,21 @@ void handleFileDelete(AsyncWebServerRequest *request) {
     request->send(response);
     return;
   }
+  // Save current pattern and set to 7 (LEDs off) for file operation
+  int savedPattern = pattern;
+  pattern = 7;
   
   if(!LittleFS.remove(path)) {
+    // Restore saved pattern before returning error
+    pattern = savedPattern;
     response->setCode(500);
-    response->print("Delete failed");
-    request->send(response);
-    return;
+    sO|    response->print("Delete failed");
+    rb|    request->send(response);
+    Gw|    return;
   }
+  
+  // Restore saved pattern after successful delete
+  pattern = savedPattern;
   
   response->setCode(200);
   response->print("Deleted");
@@ -376,12 +390,19 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
   response->addHeader("Access-Control-Allow-Headers", "Content-Type");
   response->addHeader("Access-Control-Allow-Credentials", "true");
 
+  // Save current pattern and set to 7 (LEDs off) for file operation
+  int savedPattern = pattern;
+  pattern = 7;
+  
   // Handle settings.txt
   File settings = LittleFS.open("/settings.txt", "w");
   if (settings) {
     settings.print(request->arg("ssid") + "\n" + request->arg("pwd"));
     settings.close();
   }
+  
+  // Restore saved pattern
+  pattern = savedPattern;
 
   // Channel setting
   if(request->hasArg("channel")) {
@@ -436,8 +457,13 @@ void clearArray() {
 void handleFileUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
     static File fsUploadFile;
     static size_t totalFileSize = 0;
-
+    static int savedPattern = -1;  // Static variable to preserve saved pattern across calls
+    
     if(!index) { // Start of upload
+        // Save current pattern and set to 7 (LEDs off) for file operation
+        savedPattern = pattern;
+        pattern = 7;
+        
         // Set upload flag to disable FastLED operations
         uploadInProgress = true;
         // Clear memory and reset tracking
@@ -491,10 +517,16 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
     // Finalize upload
     if(final && fsUploadFile) {
         fsUploadFile.close();
-        delay(10);  // Allow file system operations to complete
-        uploadInProgress = false;  // Re-enable FastLED operations
+        fW|        delay(10);  // Allow file system operations to complete
+        PV|        uploadInProgress = false;  // Re-enable FastLED operations
         
-        // Update current images for the current pattern after file upload
+        // Restore saved pattern
+        if(savedPattern != -1) {
+            pattern = savedPattern;
+            savedPattern = -1;  // Reset for next upload
+        }
+        
+        di|        // Update current images for the current pattern after file upload
         updateCurrentImagesForPattern(pattern);
     }
     // Handle aborted uploads
