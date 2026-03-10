@@ -27,4 +27,6 @@ void handleFileCreate(AsyncWebServerRequest* request);
 void handleFileDelete(AsyncWebServerRequest* request);
 
 void monitorHeapStatus();
-\n// Pattern file cache functions (defined in main.cpp)\nvoid refreshPatternFileCacheEntry(char patternChar);\nvoid refreshPatternFileCache();
+// Pattern file cache functions (defined in main.cpp)
+void refreshPatternFileCacheEntry(char patternChar);
+void refreshPatternFileCache();

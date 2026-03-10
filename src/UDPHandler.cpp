@@ -5,7 +5,6 @@
 // UDP Handler Variables
 extern unsigned long currentMillis2;
 extern unsigned long previousMillis2;
-constexpr int interval = 1000;  // 1 second default interval
 extern int len;
 extern uint8_t packetBuffer[255];
 extern uint8_t Y;
