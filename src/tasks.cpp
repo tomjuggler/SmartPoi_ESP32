@@ -434,6 +434,13 @@ void handleFileDelete(AsyncWebServerRequest *request) {
   // Restore saved pattern after successful delete
   pattern = savedPattern;
 
+  // Refresh cache entry if this was a pattern file
+  // Pattern files have format like /a.bin where second char is pattern char
+  if(path.length() >= 2 && path.endsWith(".bin")) {
+    char patternChar = path[1];
+    refreshPatternFileCacheEntry(patternChar);
+  }
+
   response->setCode(200);
   response->print("Deleted");
   request->send(response);
@@ -585,6 +592,13 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         
         // Update current images for the current pattern after file upload
         updateCurrentImagesForPattern(pattern);
+        
+        // Refresh cache entry for this pattern file
+        // Pattern files have format like /a.bin where second char is pattern char
+        if(fullPath.length() >= 2) {
+            char patternChar = fullPath[1];
+            refreshPatternFileCacheEntry(patternChar);
+        }
     }
     // Handle aborted uploads
     if(!final && !fsUploadFile) {
