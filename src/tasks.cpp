@@ -328,6 +328,11 @@ void handleFileCreate(AsyncWebServerRequest *request) {
     return;
   }
   
+  // Ensure path starts with '/' for ESP32 LittleFS
+  if(!path.startsWith("/")) {
+    path = "/" + path;
+  }
+
   if(LittleFS.exists(path)) {
     response->setCode(409);
     response->print("File exists");
@@ -337,10 +342,10 @@ void handleFileCreate(AsyncWebServerRequest *request) {
   // Save current pattern and set to 7 (LEDs off) for file operation
   int savedPattern = pattern;
   pattern = 7;
-  
+
   File file = LittleFS.open(path, "w");
   file.close();
-  
+
   // Restore saved pattern
   pattern = savedPattern;
   response->setCode(200);
@@ -362,10 +367,24 @@ void handleFileDelete(AsyncWebServerRequest *request) {
     request->send(response);
     return;
   }
+  
+  // Ensure path starts with '/' for ESP32 LittleFS
+  if(!path.startsWith("/")) {
+    path = "/" + path;
+  }
+
+  // Check if file exists before attempting deletion
+  if(!LittleFS.exists(path)) {
+    response->setCode(404);
+    response->print("File not found");
+    request->send(response);
+    return;
+  }
+
   // Save current pattern and set to 7 (LEDs off) for file operation
   int savedPattern = pattern;
   pattern = 7;
-  
+
   if(!LittleFS.remove(path)) {
     // Restore saved pattern before returning error
     pattern = savedPattern;
@@ -374,10 +393,10 @@ void handleFileDelete(AsyncWebServerRequest *request) {
     request->send(response);
     return;
   }
-  
+
   // Restore saved pattern after successful delete
   pattern = savedPattern;
-  
+
   response->setCode(200);
   response->print("Deleted");
   request->send(response);
