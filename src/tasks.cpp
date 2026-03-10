@@ -515,7 +515,7 @@ void setupElegantOTATask()
       "Elegant OTA Task",    // Name of the task
       4096,                  // Stack size (in words, not bytes)
       NULL,                  // Task input parameter
-      3,                     // Priority of the task
+      1,                     // Priority of the task
       &elegantOTATaskHandle, // Task handle
       0                      // Core where the task should run (core 1)
   );
