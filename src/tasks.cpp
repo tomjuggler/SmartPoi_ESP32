@@ -275,22 +275,37 @@ void handleFileList(AsyncWebServerRequest *request) {
     path = "/" + path;
   }
 
-  String output = "[";
+  // Stream JSON output directly to response to save memory
+  response->print("[");
   
   File root = LittleFS.open(path);
+  if(!root) {
+    response->print("]");
+    request->send(response);
+    return;
+  }
+
   File file = root.openNextFile();
+  bool firstEntry = true;
   while(file) {
-    if(output != "[") output += ',';
-    output += "{\"type\":\"";
-    output += (file.isDirectory() ? "dir" : "file");
-    output += "\",\"name\":\"";
-    output += String(file.name());
-    output += "\"}";
+    if(!firstEntry) {
+      response->print(",");
+    }
+    firstEntry = false;
+    
+    response->print("{\"type\":\"");
+    response->print(file.isDirectory() ? "dir" : "file");
+    response->print("\",\"name\":\"");
+    response->print(String(file.name()));
+    response->print("\"}");
+    
     file = root.openNextFile();
   }
-  output += "]";
   
-  response->print(output);
+  // Close the root directory
+  root.close();
+  
+  response->print("]");
   request->send(response);
 }
 
