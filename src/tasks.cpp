@@ -477,6 +477,7 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
     static File fsUploadFile;
     static size_t totalFileSize = 0;
     static int savedPattern = -1;  // Static variable to preserve saved pattern across calls
+    static String fullPath;        // Static variable to store the full path for the upload
     
     if(!index) { // Start of upload
         // Save current pattern and set to 7 (LEDs off) for file operation
@@ -495,7 +496,7 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         delay(50);  // Allow RMT channel to complete any pending operations
         
         // Create a new variable instead of modifying const parameter
-        String fullPath = "/" + filename;
+        fullPath = "/" + filename;
         
         // Validate filename format
         if (fullPath.length() != 6 || images.indexOf(fullPath[1]) == -1) {
