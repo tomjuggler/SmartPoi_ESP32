@@ -60,6 +60,21 @@ size_t getUsedSpace() {
   return LittleFS.usedBytes();
 }
 
+// Heap monitoring function
+void logHeapStatus() {
+  static unsigned long lastHeapLog = 0;
+  unsigned long now = millis();
+  
+  // Log heap status every 30 seconds
+  if (now - lastHeapLog > 30000) {
+    lastHeapLog = now;
+    Serial.printf("[HEAP] Free: %d, Min Free: %d, Max Alloc: %d\n", 
+                  ESP.getFreeHeap(), 
+                  ESP.getMinFreeHeap(), 
+                  ESP.getMaxAllocHeap());
+  }
+}
+
 String formatBytes(size_t bytes) {
   const char* suffixes[] = {"B", "KB", "MB", "GB"};
   uint8_t i = 0;
@@ -585,7 +600,7 @@ void setupElegantOTATask()
   xTaskCreatePinnedToCore(
       elegantOTATask,        // Task function
       "Elegant OTA Task",    // Name of the task
-      4096,                  // Stack size (in words, not bytes)
+      8192,                  // Stack size increased from 4096 to 8192 words (32KB)
       NULL,                  // Task input parameter
       1,                     // Priority of the task
       &elegantOTATaskHandle, // Task handle
