@@ -370,9 +370,9 @@ void handleFileDelete(AsyncWebServerRequest *request) {
     // Restore saved pattern before returning error
     pattern = savedPattern;
     response->setCode(500);
-    sO|    response->print("Delete failed");
-    rb|    request->send(response);
-    Gw|    return;
+    response->print("Delete failed");
+    request->send(response);
+    return;
   }
   
   // Restore saved pattern after successful delete
@@ -517,8 +517,8 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
     // Finalize upload
     if(final && fsUploadFile) {
         fsUploadFile.close();
-        fW|        delay(10);  // Allow file system operations to complete
-        PV|        uploadInProgress = false;  // Re-enable FastLED operations
+        delay(10);  // Allow file system operations to complete
+        uploadInProgress = false;  // Re-enable FastLED operations
         
         // Restore saved pattern
         if(savedPattern != -1) {
@@ -526,7 +526,7 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
             savedPattern = -1;  // Reset for next upload
         }
         
-        di|        // Update current images for the current pattern after file upload
+        // Update current images for the current pattern after file upload
         updateCurrentImagesForPattern(pattern);
     }
     // Handle aborted uploads
