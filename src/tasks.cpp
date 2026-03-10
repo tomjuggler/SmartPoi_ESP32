@@ -507,7 +507,7 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         if(totalFileSize > MAX_PX || 
            totalFileSize > getRemainingSpace()) {
             fsUploadFile.close();
-            LittleFS.remove(filename);
+            LittleFS.remove(fullPath);
             request->send(507, "text/plain", "File size exceeds limit");
             return;
         }
