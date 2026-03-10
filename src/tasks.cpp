@@ -270,6 +270,11 @@ void handleFileList(AsyncWebServerRequest *request) {
   response->addHeader("Access-Control-Allow-Credentials", "true");
   
   String path = request->hasArg("dir") ? request->arg("dir") : "/";
+  // Ensure path starts with '/' for ESP32 LittleFS
+  if(!path.startsWith("/")) {
+    path = "/" + path;
+  }
+
   String output = "[";
   
   File root = LittleFS.open(path);
