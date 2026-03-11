@@ -2,6 +2,8 @@
 #include "Globals.h"
 #include "LittleFS.h"
 
+// Declare function from ShowLittleFSImage.cpp
+extern "C" void markFileForReload(char patternChar);
 
 extern long interval;
 #include <EEPROM.h>
@@ -439,6 +441,8 @@ void handleFileDelete(AsyncWebServerRequest *request) {
   if(path.length() >= 2 && path.endsWith(".bin")) {
     char patternChar = path[1];
     refreshPatternFileCacheEntry(patternChar);
+    // Also mark file for reload if it's currently loaded
+    markFileForReload(patternChar);
   }
 
   response->setCode(200);
@@ -598,6 +602,8 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         if(fullPath.length() >= 2) {
             char patternChar = fullPath[1];
             refreshPatternFileCacheEntry(patternChar);
+            // Also mark file for reload if it's currently loaded
+            markFileForReload(patternChar);
         }
     }
     // Handle aborted uploads
