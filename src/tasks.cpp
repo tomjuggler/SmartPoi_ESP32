@@ -60,6 +60,23 @@ size_t getUsedSpace() {
   return LittleFS.usedBytes();
 }
 
+// Heap monitoring function
+void monitorHeapStatus() {
+  static unsigned long lastHeapLog = 0;
+  unsigned long now = millis();
+  
+  // Log heap status every 30 seconds
+  if (now - lastHeapLog > 30000) {
+    lastHeapLog = now;
+    Serial.print("[HEAP] Free: ");
+    Serial.print(ESP.getFreeHeap());
+    Serial.print(", Min Free: ");
+    Serial.print(ESP.getMinFreeHeap());
+    Serial.print(", Max Alloc: ");
+    Serial.println(ESP.getMaxAllocHeap());
+  }
+}
+
 String formatBytes(size_t bytes) {
   const char* suffixes[] = {"B", "KB", "MB", "GB"};
   uint8_t i = 0;
@@ -270,22 +287,42 @@ void handleFileList(AsyncWebServerRequest *request) {
   response->addHeader("Access-Control-Allow-Credentials", "true");
   
   String path = request->hasArg("dir") ? request->arg("dir") : "/";
-  String output = "[";
+  // Ensure path starts with '/' for ESP32 LittleFS
+  if(!path.startsWith("/")) {
+    path = "/" + path;
+  }
+
+  // Stream JSON output directly to response to save memory
+  response->print("[");
   
   File root = LittleFS.open(path);
+  if(!root) {
+    response->print("]");
+    request->send(response);
+    return;
+  }
+
   File file = root.openNextFile();
+  bool firstEntry = true;
   while(file) {
-    if(output != "[") output += ',';
-    output += "{\"type\":\"";
-    output += (file.isDirectory() ? "dir" : "file");
-    output += "\",\"name\":\"";
-    output += String(file.name());
-    output += "\"}";
+    if(!firstEntry) {
+      response->print(",");
+    }
+    firstEntry = false;
+    
+    response->print("{\"type\":\"");
+    response->print(file.isDirectory() ? "dir" : "file");
+    response->print("\",\"name\":\"");
+    response->print(String(file.name()));
+    response->print("\"}");
+    
     file = root.openNextFile();
   }
-  output += "]";
   
-  response->print(output);
+  // Close the root directory
+  root.close();
+  
+  response->print("]");
   request->send(response);
 }
 
@@ -328,15 +365,26 @@ void handleFileCreate(AsyncWebServerRequest *request) {
     return;
   }
   
+  // Ensure path starts with '/' for ESP32 LittleFS
+  if(!path.startsWith("/")) {
+    path = "/" + path;
+  }
+
   if(LittleFS.exists(path)) {
     response->setCode(409);
     response->print("File exists");
     request->send(response);
     return;
   }
-  
+  // Save current pattern and set to 7 (LEDs off) for file operation
+  int savedPattern = pattern;
+  pattern = 7;
+
   File file = LittleFS.open(path, "w");
   file.close();
+
+  // Restore saved pattern
+  pattern = savedPattern;
   response->setCode(200);
   response->print("Created");
   request->send(response);
@@ -357,13 +405,42 @@ void handleFileDelete(AsyncWebServerRequest *request) {
     return;
   }
   
+  // Ensure path starts with '/' for ESP32 LittleFS
+  if(!path.startsWith("/")) {
+    path = "/" + path;
+  }
+
+  // Check if file exists before attempting deletion
+  if(!LittleFS.exists(path)) {
+    response->setCode(404);
+    response->print("File not found");
+    request->send(response);
+    return;
+  }
+
+  // Save current pattern and set to 7 (LEDs off) for file operation
+  int savedPattern = pattern;
+  pattern = 7;
+
   if(!LittleFS.remove(path)) {
+    // Restore saved pattern before returning error
+    pattern = savedPattern;
     response->setCode(500);
     response->print("Delete failed");
     request->send(response);
     return;
   }
-  
+
+  // Restore saved pattern after successful delete
+  pattern = savedPattern;
+
+  // Refresh cache entry if this was a pattern file
+  // Pattern files have format like /a.bin where second char is pattern char
+  if(path.length() >= 2 && path.endsWith(".bin")) {
+    char patternChar = path[1];
+    refreshPatternFileCacheEntry(patternChar);
+  }
+
   response->setCode(200);
   response->print("Deleted");
   request->send(response);
@@ -376,12 +453,19 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
   response->addHeader("Access-Control-Allow-Headers", "Content-Type");
   response->addHeader("Access-Control-Allow-Credentials", "true");
 
+  // Save current pattern and set to 7 (LEDs off) for file operation
+  int savedPattern = pattern;
+  pattern = 7;
+  
   // Handle settings.txt
   File settings = LittleFS.open("/settings.txt", "w");
   if (settings) {
     settings.print(request->arg("ssid") + "\n" + request->arg("pwd"));
     settings.close();
   }
+  
+  // Restore saved pattern
+  pattern = savedPattern;
 
   // Channel setting
   if(request->hasArg("channel")) {
@@ -436,8 +520,14 @@ void clearArray() {
 void handleFileUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
     static File fsUploadFile;
     static size_t totalFileSize = 0;
-
+    static int savedPattern = -1;  // Static variable to preserve saved pattern across calls
+    static String fullPath;        // Static variable to store the full path for the upload
+    
     if(!index) { // Start of upload
+        // Save current pattern and set to 7 (LEDs off) for file operation
+        savedPattern = pattern;
+        pattern = 7;
+        
         // Set upload flag to disable FastLED operations
         uploadInProgress = true;
         // Clear memory and reset tracking
@@ -450,7 +540,7 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         delay(50);  // Allow RMT channel to complete any pending operations
         
         // Create a new variable instead of modifying const parameter
-        String fullPath = "/" + filename;
+        fullPath = "/" + filename;
         
         // Validate filename format
         if (fullPath.length() != 6 || images.indexOf(fullPath[1]) == -1) {
@@ -481,7 +571,7 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         if(totalFileSize > MAX_PX || 
            totalFileSize > getRemainingSpace()) {
             fsUploadFile.close();
-            LittleFS.remove(filename);
+            LittleFS.remove(fullPath);
             request->send(507, "text/plain", "File size exceeds limit");
             return;
         }
@@ -494,8 +584,21 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         delay(10);  // Allow file system operations to complete
         uploadInProgress = false;  // Re-enable FastLED operations
         
+        // Restore saved pattern
+        if(savedPattern != -1) {
+            pattern = savedPattern;
+            savedPattern = -1;  // Reset for next upload
+        }
+        
         // Update current images for the current pattern after file upload
         updateCurrentImagesForPattern(pattern);
+        
+        // Refresh cache entry for this pattern file
+        // Pattern files have format like /a.bin where second char is pattern char
+        if(fullPath.length() >= 2) {
+            char patternChar = fullPath[1];
+            refreshPatternFileCacheEntry(patternChar);
+        }
     }
     // Handle aborted uploads
     if(!final && !fsUploadFile) {
@@ -513,9 +616,9 @@ void setupElegantOTATask()
   xTaskCreatePinnedToCore(
       elegantOTATask,        // Task function
       "Elegant OTA Task",    // Name of the task
-      4096,                  // Stack size (in words, not bytes)
+      8192,                  // Stack size increased from 4096 to 8192 words (32KB)
       NULL,                  // Task input parameter
-      3,                     // Priority of the task
+      1,                     // Priority of the task
       &elegantOTATaskHandle, // Task handle
       0                      // Core where the task should run (core 1)
   );

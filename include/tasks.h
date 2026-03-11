@@ -13,7 +13,6 @@ extern uint8_t message1Data[MAX_PX];
 class AsyncWebServerRequest;
 
 // Function declarations
-bool checkFileSpace(size_t fileSize);
 void setupElegantOTATask();
 void elegantOTATask(void *pvParameters);
 void handleFileUpload(AsyncWebServerRequest* request, const String& filename, size_t index, uint8_t* data, size_t len, bool final);
@@ -26,3 +25,9 @@ void handleFileList(AsyncWebServerRequest* request);
 void handleFileRead(AsyncWebServerRequest* request);
 void handleFileCreate(AsyncWebServerRequest* request);
 void handleFileDelete(AsyncWebServerRequest* request);
+
+void monitorHeapStatus();
+// Pattern file cache functions (defined in main.cpp)
+void refreshPatternFileCacheEntry(char patternChar);
+void refreshPatternFileCache();
+bool checkPatternFileExists(char patternChar);

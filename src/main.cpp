@@ -30,7 +30,6 @@ int X = 0;
 uint8_t R1 = 0;
 uint8_t G1 = 0;
 uint8_t M1 = 0;
-// bool auxillary = false; //moved to platformio.ini
 int newBrightness = DEFAULT_BRIGHTNESS;
 int targetBrightness = DEFAULT_BRIGHTNESS;
 uint8_t message1Data[MAX_PX];
@@ -57,7 +56,6 @@ unsigned long previousMillis = 0;
 unsigned long previousMillis2 = 0;
 unsigned long previousMillis3 = 0;
 long interval = 5000;
-// bool checkit = false;
 bool channelChange = false;
 bool uploadInProgress = false; // Flag to disable FastLED operations during upload
 bool savingToSpiffs = false;
@@ -66,7 +64,6 @@ const long intervalBetweenFlashy = 5;
 bool black = true;
 bool upDown = true;
 bool lines = true;
-#define UPDATES_PER_SECOND 30000
 int motionSpeed = 1;
 int maxStartIndex = 70;
 int minStartIndex = 0;
@@ -89,14 +86,66 @@ String images3 = "fghij";
 String images4 = "klmnopqrst";
 String images5 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 String currentImages = images;
-#ifndef ESP32
-String bin = "a.bin";
-#else
 String bin = "/a.bin";
-#endif
+
+// Cache for pattern file existence to avoid repeated LittleFS.exists() calls
+// that generate error messages for non-existent files
+bool patternFileExistsCache[62]; // 26 lowercase + 26 uppercase + 10 digits = 62
+bool cacheInitialized = false;
+
+void initializePatternFileCache() {
+  if (cacheInitialized) return;
+  
+  Serial.println("Initializing pattern file cache...");
+  
+  // Check each possible pattern file once and cache the result
+  for (int i = 0; i < 62; i++) {
+    String testBin = bin;
+    testBin.setCharAt(1, images.charAt(i));
+    patternFileExistsCache[i] = LittleFS.exists(testBin);
+    
+    // Small delay to prevent overwhelming the filesystem
+    delay(1);
+  }
+  
+  cacheInitialized = true;
+  Serial.println("Pattern file cache initialized");
+}
+
+// Refresh a specific cache entry when a file changes
+void refreshPatternFileCacheEntry(char patternChar) {
+  int index = images.indexOf(patternChar);
+  if (index == -1) return; // Character not in images string
+  
+  String testBin = bin;
+  testBin.setCharAt(1, patternChar);
+  patternFileExistsCache[index] = LittleFS.exists(testBin);
+}
+
+// Refresh entire cache (use sparingly)
+void refreshPatternFileCache() {
+  Serial.println("Refreshing pattern file cache...");
+  for (int i = 0; i < 62; i++) {
+    String testBin = bin;
+    testBin.setCharAt(1, images.charAt(i));
+    patternFileExistsCache[i] = LittleFS.exists(testBin);
+    delay(1);
+  }
+  Serial.println("Pattern file cache refreshed");
+}
+
+bool checkPatternFileExists(char patternChar) {
+  int index = images.indexOf(patternChar);
+  if (index == -1) return false; // Character not in images string
+  
+  if (!cacheInitialized) {
+    initializePatternFileCache();
+  }
+  
+  return patternFileExistsCache[index];
+}
+
 int uploadCounter = 1;
-bool wifiEventDetect = false;
-// bool start = true;
 bool routerOption = false;
 volatile unsigned long currentMillis = millis();
 volatile int packetSize;
@@ -123,9 +172,11 @@ void setup()
   EEPROM.commit();
 
   bool result = LittleFS.begin(true);
-
+  
+  // Initialize pattern file cache to avoid repeated LittleFS.exists() calls
+  initializePatternFileCache();
+  
   littleFSLoadSettings();
-  checkFilesInSetup();
   fastLEDIndicate();
   Udp.begin(LOCAL_PORT);
   setupElegantOTATask(); // Start the OTA task - also Web Server for built-in controls
@@ -157,7 +208,7 @@ bool updateCurrentImagesForPattern(int pattern) {
         // Check if the file actually exists
         String testBin = bin;
         testBin.setCharAt(1, tempImages.charAt(0));
-        if(LittleFS.exists(testBin)) {
+        if(checkPatternFileExists(tempImages.charAt(0))) {
           // For single character patterns, set min/max to 0
           currentImages = tempImages;
           minImages = 0;
@@ -180,7 +231,7 @@ bool updateCurrentImagesForPattern(int pattern) {
 
   for(int i = 0; i < tempImages.length(); i++) {
     testBin.setCharAt(1, tempImages.charAt(i));
-    if(LittleFS.exists(testBin)) {
+    if(checkPatternFileExists(tempImages.charAt(i))) {
       anyFileExists = true;
       filteredImages += tempImages.charAt(i);
     }
@@ -270,21 +321,17 @@ void loop()
 {
   ChangePatternPeriodically();
   checkBrightness();
-
+  handleDNSServer();
+  monitorHeapStatus(); // Monitor heap usage every loop iteration
+  
   currentMillis = millis();
 
-  // if (currentMillis - previousMillis >= interval)
-  // {
-  //   previousMillis = currentMillis;
-  //   state = 1;
-  // }
 
   if (!uploadInProgress)
   {
     switch (pattern)
     {
     case 0:
-      // currentMillis2 = millis();
       packetSize = Udp.parsePacket();
       if (packetSize)
       {

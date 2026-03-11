@@ -5,7 +5,7 @@
 #if defined(ESP32)
   #define PLATFORM_ESP32
 #else
-  #error "Unsupported platform - Support ESP32 C3 or S3 only!"
+#error "Unsupported platform - This project requires ESP32 platform!"
 #endif
 
 #include <Arduino.h>
@@ -14,21 +14,12 @@
 #include <FastLED.h>
 
 
-// #include <WiFi.h>
-// #include <DNSServer.h>
-// #include <WebServer.h>
-// #include <EEPROM.h>
-// #include <WiFiMulti.h>
-// // extern WebServer poiserver;
-// extern WiFiMulti WiFiMulti;
-// extern DNSServer dnsServer;
 
 // Configuration Constants
 constexpr int NUM_LEDS = NUMLEDS; //from platformio.ini
 constexpr int NUM_PX = NUMPX; //from platformio.ini
 constexpr int DNS_PORT = 53;
 constexpr unsigned int LOCAL_PORT = 2390;
-// constexpr int MAX_PX = 12240; //moved to platformio.ini
 constexpr int MAX_PX = MAXPX;
 constexpr int DEFAULT_BRIGHTNESS = 20;
 constexpr int BRIGHTNESS_RAMP_INTERVAL = 20;  // milliseconds
@@ -51,11 +42,11 @@ extern int imageToUse;
 extern int minImages;
 extern int maxImages;
 extern unsigned long previousMillis3;
+extern long interval;
 extern uint8_t addrNumA;
 extern uint8_t addrNumB;
 extern uint8_t addrNumC;
 extern uint8_t addrNumD;
-// extern bool auxillary; //moved to platformio.ini
 extern File settings;
 extern String Field;
 extern size_t maxPX;
@@ -94,8 +85,5 @@ extern bool updateCurrentImagesForPattern(int pattern);
   #define WIFI_AP WIFI_MODE_AP
 
 // Shared Functions
-// void fastLEDInit();
-// void fastLEDIndicate();
-// void fastLEDIndicateFast();
 
 #endif
