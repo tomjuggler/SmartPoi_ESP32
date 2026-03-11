@@ -62,10 +62,11 @@ update_auxillary_flag() {
     
     # Find the line with auxillary flag for other_c3_board environment
     # We need to be careful to only update the correct environment
-    sed -i "/^\[env:other_c3_board\]/,/^\[/ s/^-D auxillary=.*$/-D auxillary=${value} ; false for main poi, true for auxillary. Auxillary do not work alone./" platformio.ini
+    # The line has leading whitespace (tab) and may have varying spacing
+    sed -i "/^\\[env:other_c3_board\\]/,/^\\[/ s/.*-D auxillary=.*$/	-D auxillary=${value} ; false for main poi, true for auxillary. Auxillary do not work alone./" platformio.ini
     
     # Verify the change
-    if grep -q "^-D auxillary=${value}" platformio.ini; then
+    if grep -q "auxillary=${value}" platformio.ini; then
         print_info "Successfully updated auxillary flag to ${value}"
     else
         print_error "Failed to update auxillary flag to ${value}"
