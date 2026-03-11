@@ -2,6 +2,10 @@
 #include "Globals.h"
 #include <Arduino.h>
 
+// Declare external variables from ShowLittleFSImage.cpp
+extern char currentLoadedImageChar;
+extern bool fileNeedsReload;
+
 /**
  * @brief Changes the pattern periodically based on the set interval.
  * 
@@ -16,13 +20,25 @@ void ChangePatternPeriodically()
     if(pattern >= 8){
       return; //don't increment for patterns 8+
     }
+    
+    // Store previous image character before changing
+    char previousImageChar = bin.charAt(1);
+    
     imageToUse++;
     previousMillis3 = currentMillis3;
     if(imageToUse > maxImages){
         imageToUse = minImages;
-        bin.setCharAt(1, images.charAt(minImages));
+        bin.setCharAt(1, currentImages.charAt(minImages));
     } else {
-        bin.setCharAt(1, images.charAt(imageToUse));
+        bin.setCharAt(1, currentImages.charAt(imageToUse));
+    }
+    
+    // Check if image actually changed
+    char newImageChar = bin.charAt(1);
+    if (newImageChar != previousImageChar) {
+      fileNeedsReload = true;
+      // Also reset currentLoadedImageChar to force reload check
+      currentLoadedImageChar = '\0';
     }
   }
   yield();
