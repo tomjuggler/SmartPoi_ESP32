@@ -155,9 +155,22 @@ main() {
     
     # 1. Create new release branch
     print_info "Creating new release branch: ${RELEASE_BRANCH}"
-    git checkout -b "${RELEASE_BRANCH}"
     
-    # Create releases directory structure
+    # Check if branch already exists and handle accordingly
+    if git show-ref --verify --quiet "refs/heads/${RELEASE_BRANCH}"; then
+        # Branch exists, check it out
+        print_info "Branch already exists, checking it out..."
+        git checkout "${RELEASE_BRANCH}"
+        
+        # Clean up any existing release directory for this date
+        if [ -d "${RELEASE_DIR}" ]; then
+            print_warn "Removing existing release directory: ${RELEASE_DIR}"
+            rm -rf "${RELEASE_DIR}"
+        fi
+    else
+        # Branch doesn't exist, create it
+        git checkout -b "${RELEASE_BRANCH}"
+    fi
     print_info "Creating release directory: ${RELEASE_DIR}"
     mkdir -p "${RELEASE_DIR}"
     
