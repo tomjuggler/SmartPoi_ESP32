@@ -36,7 +36,7 @@ constexpr int CLOCK_PIN = CLOCKPIN;
 #define FILE_TASK_PRIO 2
 
 // FreeRTOS Task Stack Sizes
-#define POV_TASK_STACK_SIZE 4096
+#define POV_TASK_STACK_SIZE 8192
 #define FILE_TASK_STACK_SIZE 4096
 #define WEB_TASK_STACK_SIZE 4096
 

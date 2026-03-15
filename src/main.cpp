@@ -112,7 +112,16 @@ void initializePatternFileCache() {
   for (int i = 0; i < 62; i++) {
     String testBin = bin;
     testBin.setCharAt(1, images.charAt(i));
-    patternFileExistsCache[i] = LittleFS.exists(testBin);
+    
+    // Try to open the file in read-only mode to check if it exists
+    // This avoids the error messages from LittleFS.exists()
+    File testFile = LittleFS.open(testBin, "r");
+    if (testFile) {
+      patternFileExistsCache[i] = true;
+      testFile.close();
+    } else {
+      patternFileExistsCache[i] = false;
+    }
     
     // Small delay to prevent overwhelming the filesystem
     delay(1);
@@ -129,7 +138,16 @@ void refreshPatternFileCacheEntry(char patternChar) {
   
   String testBin = bin;
   testBin.setCharAt(1, patternChar);
-  patternFileExistsCache[index] = LittleFS.exists(testBin);
+  
+  // Try to open the file in read-only mode to check if it exists
+  // This avoids the error messages from LittleFS.exists()
+  File testFile = LittleFS.open(testBin, "r");
+  if (testFile) {
+    patternFileExistsCache[index] = true;
+    testFile.close();
+  } else {
+    patternFileExistsCache[index] = false;
+  }
 }
 
 // Refresh entire cache (use sparingly)
@@ -138,7 +156,17 @@ void refreshPatternFileCache() {
   for (int i = 0; i < 62; i++) {
     String testBin = bin;
     testBin.setCharAt(1, images.charAt(i));
-    patternFileExistsCache[i] = LittleFS.exists(testBin);
+    
+    // Try to open the file in read-only mode to check if it exists
+    // This avoids the error messages from LittleFS.exists()
+    File testFile = LittleFS.open(testBin, "r");
+    if (testFile) {
+      patternFileExistsCache[i] = true;
+      testFile.close();
+    } else {
+      patternFileExistsCache[i] = false;
+    }
+    
     delay(1);
   }
   Serial.println("Pattern file cache refreshed");
@@ -155,9 +183,6 @@ bool checkPatternFileExists(char patternChar) {
 // POV Display Task - High priority task for microsecond-accurate LED timing
 void povDisplayTask(void *pvParameters) {
   Serial.println("POV display task started");
-  
-  // Task watchdog reset
-  esp_task_wdt_reset();
   
   // Stack monitoring for debugging
   UBaseType_t stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
@@ -190,7 +215,12 @@ void povDisplayTask(void *pvParameters) {
       bin.setCharAt(1, patternChar);
       
       // Shadow buffer for local copy to minimize mutex hold time
-      uint8_t shadowBuffer[MAX_PX];
+      uint8_t* shadowBuffer = (uint8_t*)malloc(MAX_PX);
+      if (shadowBuffer == NULL) {
+        Serial.println("ERROR: Failed to allocate shadow buffer!");
+        vTaskDelay(pdMS_TO_TICKS(10));
+        continue;
+      }
       int localPxAcross = pxAcross;
       int localPxDown = pxDown;
       // Get buffer mutex to safely copy data
@@ -225,6 +255,12 @@ void povDisplayTask(void *pvParameters) {
             esp_task_wdt_reset();
           }
         }
+        
+        // Free the shadow buffer after use
+        free(shadowBuffer);
+      } else {
+        // Failed to get mutex, free buffer and continue
+        free(shadowBuffer);
       }
     }
     
@@ -244,6 +280,9 @@ void fileReaderTask(void *pvParameters) {
   char lastLoadedImage = '\0';
   bool needsReload = true;
   while (1) {
+    // Reset task watchdog
+    esp_task_wdt_reset();
+    
     // Only process if not in upload mode
     if (!uploadInProgress) {
       // Determine which image to load based on current pattern
@@ -353,6 +392,26 @@ void setup()
   // Send check-in to SmartPoi API
   sendSmartPoiCheckin();
   
+  // Initialize task watchdog timer with 5 second timeout
+  // Check if watchdog is already initialized (might be initialized by Arduino core)
+  esp_task_wdt_config_t wdt_config = {
+    .timeout_ms = 5000, // 5 second timeout
+    .idle_core_mask = 0, // Watch both cores (if applicable)
+    .trigger_panic = true // Panic on timeout
+  };
+  esp_err_t wdt_init_result = esp_task_wdt_reconfigure(&wdt_config);
+  if (wdt_init_result == ESP_OK) {
+    Serial.println("Task watchdog timer reconfigured");
+  } else {
+    // If reconfigure fails, try to initialize
+    wdt_init_result = esp_task_wdt_init(&wdt_config);
+    if (wdt_init_result == ESP_OK) {
+      Serial.println("Task watchdog timer initialized");
+    } else {
+      Serial.printf("Failed to initialize watchdog timer: %d\n", wdt_init_result);
+    }
+  }
+  
   // Initialize FreeRTOS mutex semaphores for thread safety
   bufferMutex = xSemaphoreCreateMutex();
   if (bufferMutex == NULL) {
@@ -374,6 +433,8 @@ void setup()
     Serial.println("ERROR: Failed to create POV display task!");
   } else {
     Serial.println("POV display task created successfully");
+    // Add task to watchdog timer
+    esp_task_wdt_add(povTaskHandle);
   }
   
   xTaskCreate(fileReaderTask, "FILE_TASK", FILE_TASK_STACK_SIZE, NULL, FILE_TASK_PRIO, &fileTaskHandle);
@@ -381,10 +442,19 @@ void setup()
     Serial.println("ERROR: Failed to create file reader task!");
   } else {
     Serial.println("File reader task created successfully");
+    // Add task to watchdog timer
+    esp_task_wdt_add(fileTaskHandle);
   }
   
   // Note: Web server task is created in setupElegantOTATask() in tasks.cpp
   // using xTaskCreatePinnedToCore with WEB_TASK_PRIO
+  
+  // Add the main loop task (default task) to the watchdog timer
+  TaskHandle_t mainTaskHandle = xTaskGetCurrentTaskHandle();
+  if (mainTaskHandle != NULL) {
+    esp_task_wdt_add(mainTaskHandle);
+    Serial.println("Main loop task added to watchdog timer");
+  }
 }
 
 bool updateCurrentImagesForPattern(int pattern) {
@@ -521,6 +591,9 @@ void sendSmartPoiCheckin()
 
 void loop()
 {
+  // Reset task watchdog
+  esp_task_wdt_reset();
+  
   ChangePatternPeriodically();
   checkBrightness();
   handleDNSServer();
