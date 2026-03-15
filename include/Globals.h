@@ -12,7 +12,9 @@
 #include <LittleFS.h>
 #include <WiFiUdp.h>
 #include <FastLED.h>
-
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
 
 
 // Configuration Constants
@@ -27,6 +29,16 @@ constexpr int BRIGHTNESS_RAMP_STEP = 5;       // brightness change per interval
 
 constexpr int DATA_PIN = DATAPIN;
 constexpr int CLOCK_PIN = CLOCKPIN;
+
+// FreeRTOS Task Priorities (from blueprint)
+#define POV_TASK_PRIO 5
+#define WEB_TASK_PRIO 3
+#define FILE_TASK_PRIO 2
+
+// FreeRTOS Task Stack Sizes
+#define POV_TASK_STACK_SIZE 4096
+#define FILE_TASK_STACK_SIZE 4096
+#define WEB_TASK_STACK_SIZE 4096
 
 // Global Extern Variables
 extern CRGB leds[NUM_LEDS];
@@ -76,6 +88,15 @@ extern String images3;
 extern String images4;
 extern String images5;
 extern String currentImages;
+
+// FreeRTOS Mutex Semaphores (for thread safety)
+extern SemaphoreHandle_t bufferMutex;  // Protects message1Data array in RAM
+extern SemaphoreHandle_t diskMutex;    // Protects SPI Flash bus
+
+// FreeRTOS Task Handles
+extern TaskHandle_t povTaskHandle;
+extern TaskHandle_t fileTaskHandle;
+extern TaskHandle_t webTaskHandle;
 
 // Function declarations
 extern bool updateCurrentImagesForPattern(int pattern); 

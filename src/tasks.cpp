@@ -624,7 +624,7 @@ void setupElegantOTATask()
       "Elegant OTA Task",    // Name of the task
       8192,                  // Stack size increased from 4096 to 8192 words (32KB)
       NULL,                  // Task input parameter
-      1,                     // Priority of the task
+      WEB_TASK_PRIO,         // Priority of the task (3 per blueprint)
       &elegantOTATaskHandle, // Task handle
       0                      // Core where the task should run (core 1)
   );
