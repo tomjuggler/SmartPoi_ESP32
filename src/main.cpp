@@ -9,6 +9,7 @@
 #include "ShowLittleFSImage.h"
 #include "TimeFunc.h"
 #include "tasks.h"
+#include <esp_task_wdt.h>
 
 // Global Variable Definitions
 CRGB leds[NUM_LEDS];
@@ -88,6 +89,15 @@ String images5 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
 String currentImages = images;
 String bin = "/a.bin";
 
+// FreeRTOS Mutex Semaphores (for thread safety)
+SemaphoreHandle_t bufferMutex = NULL;  // Protects message1Data array in RAM
+SemaphoreHandle_t diskMutex = NULL;    // Protects SPI Flash bus
+
+// FreeRTOS Task Handles
+TaskHandle_t povTaskHandle = NULL;
+TaskHandle_t fileTaskHandle = NULL;
+TaskHandle_t webTaskHandle = NULL;
+
 // Cache for pattern file existence to avoid repeated LittleFS.exists() calls
 // that generate error messages for non-existent files
 bool patternFileExistsCache[62]; // 26 lowercase + 26 uppercase + 10 digits = 62
@@ -137,12 +147,170 @@ void refreshPatternFileCache() {
 bool checkPatternFileExists(char patternChar) {
   int index = images.indexOf(patternChar);
   if (index == -1) return false; // Character not in images string
-  
   if (!cacheInitialized) {
-    initializePatternFileCache();
   }
   
   return patternFileExistsCache[index];
+}
+// POV Display Task - High priority task for microsecond-accurate LED timing
+void povDisplayTask(void *pvParameters) {
+  Serial.println("POV display task started");
+  
+  // Task watchdog reset
+  esp_task_wdt_reset();
+  
+  // Stack monitoring for debugging
+  UBaseType_t stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
+  Serial.printf("POV task stack high water mark: %u\n", stackHighWaterMark);
+  // Column delay for POV timing (adjust based on required refresh rate)
+  const int columnDelay = 1000; // microseconds - adjust as needed
+  
+  while (1) {
+    // Reset task watchdog
+    esp_task_wdt_reset();
+    
+    // Only run POV display if not in upload mode and pattern requires image display
+    if (!uploadInProgress && pattern >= 2 && pattern <= 69) {
+      // Extract character from bin string (format: "/x.bin" where x is the character)
+      char patternChar = bin.charAt(1);
+      
+      // Check if we need to display an image
+      if (pattern >= 2 && pattern <= 5) {
+        // For patterns 2-5, use currentImages sequence
+        if (imageToUse >= currentImages.length()) {
+          imageToUse = 0;
+        }
+        patternChar = currentImages.charAt(imageToUse);
+      } else if (pattern >= 8 && pattern <= 69) {
+        // For patterns 8-69, use single character pattern
+        patternChar = currentImages.charAt(0);
+      }
+      
+      // Update bin string with current character
+      bin.setCharAt(1, patternChar);
+      
+      // Shadow buffer for local copy to minimize mutex hold time
+      uint8_t shadowBuffer[MAX_PX];
+      int localPxAcross = pxAcross;
+      // Get buffer mutex to safely copy data
+      if (xSemaphoreTake(bufferMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+        // Copy data to shadow buffer
+        memcpy(shadowBuffer, message1Data, MAX_PX);
+        xSemaphoreGive(bufferMutex);
+        
+        // Initialize counter for reading pixel data
+        int counter = 0;
+        
+        // Loop through the pixels to display the image with microsecond timing
+        for (int j = 0; j < localPxAcross; j++) {
+          // Decompress and display column
+          for (int i = 0; i < localPxDown; i++) {
+            byte X = shadowBuffer[counter++]; // Get pixel data from shadow buffer
+            
+            // Decompress 3-3-2 bit-packed format
+            leds[i].r = (X & 0xE0);          // Red: bits 7-5
+            leds[i].g = ((X << 3) & 0xE0);   // Green: bits 4-2
+            leds[i].b = (X << 6);            // Blue: bits 1-0
+          }
+          
+          // Display the current column of pixels on the LED strip
+          FastLED.show();
+          
+          // Microsecond delay for POV timing
+          ets_delay_us(columnDelay);
+          
+          // Yield briefly to prevent watchdog timeout
+          if (j % 10 == 0) {
+            esp_task_wdt_reset();
+          }
+        }
+      }
+    }
+    
+    // Small delay to yield CPU to other tasks
+    vTaskDelay(pdMS_TO_TICKS(1));
+  }
+}
+// File Reader Task - Background task for LittleFS operations
+void fileReaderTask(void *pvParameters) {
+  Serial.println("File reader task started");
+  
+  // Stack monitoring for debugging
+  UBaseType_t stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
+  Serial.printf("File task stack high water mark: %u\n", stackHighWaterMark);
+  
+  // Track last loaded image to avoid unnecessary reloads
+  char lastLoadedImage = '\0';
+  bool needsReload = true;
+  while (1) {
+    // Only process if not in upload mode
+    if (!uploadInProgress) {
+      // Determine which image to load based on current pattern
+      char targetImage = '\0';
+      
+      if (pattern >= 2 && pattern <= 5) {
+        // For patterns 2-5, use currentImages sequence
+        if (imageToUse >= currentImages.length()) {
+          imageToUse = 0;
+        }
+        targetImage = currentImages.charAt(imageToUse);
+      } else if (pattern >= 8 && pattern <= 69) {
+        // For patterns 8-69, use single character pattern
+        targetImage = currentImages.charAt(0);
+      }
+      
+      // Check if we need to load a new image
+      if (targetImage != '\0' && (needsReload || targetImage != lastLoadedImage)) {
+        // Update bin string
+        bin.setCharAt(1, targetImage);
+        
+        // Check if file exists
+        if (checkPatternFileExists(targetImage)) {
+          // Get disk mutex to protect SPI Flash bus
+          if (xSemaphoreTake(diskMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+            // Open file for reading
+            a = LittleFS.open(bin, "r");
+            
+            if (a && a.available()) {
+              size_t size = a.size();
+              
+              // Check if the image size is valid
+              if (size > 0 && size <= MAX_PX) {
+                // Calculate pixels across
+                int newPxAcross = int(size / pxDown);
+                
+                // Get buffer mutex to protect RAM buffer
+                if (xSemaphoreTake(bufferMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+                  // Read image data into buffer
+                  a.read(message1Data, size);
+                  pxAcross = newPxAcross;
+                  xSemaphoreGive(bufferMutex);
+                  
+                  // Update tracking variables
+                  lastLoadedImage = targetImage;
+                  needsReload = false;
+                  
+                  Serial.printf("Loaded image %c (%d bytes)\n", targetImage, size);
+                }
+              }
+              
+              // Close the file
+              a.close();
+            }
+            
+            xSemaphoreGive(diskMutex);
+          }
+        } else {
+          // File doesn't exist, mark for reload
+          needsReload = true;
+          Serial.printf("Image %c not found\n", targetImage);
+        }
+      }
+    }
+    
+    // Delay to yield CPU to other tasks
+    vTaskDelay(pdMS_TO_TICKS(100)); // Check for new files every 100ms
+  }
 }
 
 int uploadCounter = 1;
@@ -183,6 +351,39 @@ void setup()
 
   // Send check-in to SmartPoi API
   sendSmartPoiCheckin();
+  
+  // Initialize FreeRTOS mutex semaphores for thread safety
+  bufferMutex = xSemaphoreCreateMutex();
+  if (bufferMutex == NULL) {
+    Serial.println("ERROR: Failed to create bufferMutex!");
+  } else {
+    Serial.println("bufferMutex created successfully");
+  }
+  
+  diskMutex = xSemaphoreCreateMutex();
+  if (diskMutex == NULL) {
+    Serial.println("ERROR: Failed to create diskMutex!");
+  } else {
+    Serial.println("diskMutex created successfully");
+  }
+  
+  // Create FreeRTOS tasks
+  xTaskCreate(povDisplayTask, "POV_TASK", POV_TASK_STACK_SIZE, NULL, POV_TASK_PRIO, &povTaskHandle);
+  if (povTaskHandle == NULL) {
+    Serial.println("ERROR: Failed to create POV display task!");
+  } else {
+    Serial.println("POV display task created successfully");
+  }
+  
+  xTaskCreate(fileReaderTask, "FILE_TASK", FILE_TASK_STACK_SIZE, NULL, FILE_TASK_PRIO, &fileTaskHandle);
+  if (fileTaskHandle == NULL) {
+    Serial.println("ERROR: Failed to create file reader task!");
+  } else {
+    Serial.println("File reader task created successfully");
+  }
+  
+  // Note: Web server task is created in setupElegantOTATask() in tasks.cpp
+  // using xTaskCreatePinnedToCore with WEB_TASK_PRIO
 }
 
 bool updateCurrentImagesForPattern(int pattern) {
@@ -341,108 +542,8 @@ void loop()
     case 1:
       funColourJam();
       break;
-    case 2:
-      // Ensure imageToUse is within bounds of currentImages
-      if (imageToUse >= currentImages.length()) {
-        imageToUse = 0;
-      }
-      bin.setCharAt(1, currentImages.charAt(imageToUse));
-      showLittleFSImage();
-      break;
-    case 3:
-      // Ensure imageToUse is within bounds of currentImages
-      if (imageToUse >= currentImages.length()) {
-        imageToUse = 0;
-      }
-      bin.setCharAt(1, currentImages.charAt(imageToUse));
-      showLittleFSImage();
-      break;
-    case 4:
-      // Ensure imageToUse is within bounds of currentImages
-      if (imageToUse >= currentImages.length()) {
-        imageToUse = 0;
-      }
-      bin.setCharAt(1, currentImages.charAt(imageToUse));
-      showLittleFSImage();
-      break;
-    case 5:
-      // Ensure imageToUse is within bounds of currentImages
-      if (imageToUse >= currentImages.length()) {
-        imageToUse = 0;
-      }
-      bin.setCharAt(1, currentImages.charAt(imageToUse));
-      showLittleFSImage();
-      break;
     case 7:
       FastLED.showColor(CRGB::Black);
-      break;
-    case 8:
-      bin.setCharAt(1, currentImages.charAt(0));
-      showLittleFSImage();
-      break;
-    case 9:
-    case 10:
-    case 11:
-    case 12:
-    case 13:
-    case 14:
-    case 15:
-    case 16:
-    case 17:
-    case 18:
-    case 19:
-    case 20:
-    case 21:
-    case 22:
-    case 23:
-    case 24:
-    case 25:
-    case 26:
-    case 27:
-    case 28:
-    case 29:
-    case 30:
-    case 31:
-    case 32:
-    case 33:
-    case 34:
-    case 35:
-    case 36:
-    case 37:
-    case 38:
-    case 39:
-    case 40:
-    case 41:
-    case 42:
-    case 43:
-    case 44:
-    case 45:
-    case 46:
-    case 47:
-    case 48:
-    case 49:
-    case 50:
-    case 51:
-    case 52:
-    case 53:
-    case 54:
-    case 55:
-    case 56:
-    case 57:
-    case 58:
-    case 59:
-    case 60:
-    case 61:
-    case 62:
-    case 63:
-    case 64:
-    case 65:
-    case 66:
-    case 67:
-    case 68:
-    case 69:
-      bin.setCharAt(1, currentImages.charAt(0));
-      showLittleFSImage();
       break;
     }
     yield();
@@ -452,4 +553,7 @@ void loop()
     yield();
   }
   yield();
+  
+  // Yield CPU to other tasks with proper vTaskDelay
+  vTaskDelay(pdMS_TO_TICKS(10)); // 10ms delay to yield CPU
 }
