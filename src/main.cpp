@@ -192,6 +192,7 @@ void povDisplayTask(void *pvParameters) {
       // Shadow buffer for local copy to minimize mutex hold time
       uint8_t shadowBuffer[MAX_PX];
       int localPxAcross = pxAcross;
+      int localPxDown = pxDown;
       // Get buffer mutex to safely copy data
       if (xSemaphoreTake(bufferMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
         // Copy data to shadow buffer
