@@ -68,6 +68,32 @@ update_auxillary_flag() {
     fi
 }
 
+# Function to update NUMPX, NUMLEDS, and MAXPX values in platformio.ini
+update_size_params() {
+    local numpx="$1"
+    local numleds="$2"
+    local maxpx="$3"
+    
+    print_info "Updating size parameters: NUMPX=${numpx}, NUMLEDS=${numleds}, MAXPX=${maxpx}"
+    
+    # Update NUMPX
+    sed -i "/^\\[env:other_c3_board\\]/,/^\\[/ s/.*-D NUMPX=.*$/\t-D NUMPX=${numpx} ; number of LED's/" platformio.ini
+    
+    # Update NUMLEDS
+    sed -i "/^\\[env:other_c3_board\\]/,/^\\[/ s/.*-D NUMLEDS=.*$/\t-D NUMLEDS=${numleds} ; number of LED's plus one - needed for some WS2812 strips/" platformio.ini
+    
+    # Update MAXPX
+    sed -i "/^\\[env:other_c3_board\\]/,/^\\[/ s/.*-D MAXPX=.*$/\t-D MAXPX=${maxpx} ; calculate according to size of image wanted. Too large means out of memory issues./" platformio.ini
+    
+    # Verify the changes
+    if grep -q "NUMPX=${numpx}" platformio.ini && grep -q "NUMLEDS=${numleds}" platformio.ini && grep -q "MAXPX=${maxpx}" platformio.ini; then
+        print_info "Successfully updated size parameters"
+    else
+        print_error "Failed to update size parameters"
+        exit 1
+    fi
+}
+
 # Function to compile firmware
 compile_firmware() {
     local env_name="$1"
@@ -152,29 +178,54 @@ main() {
     print_info "Backing up original platformio.ini"
     cp platformio.ini platformio.ini.backup
     
-    # 1. Change auxillary=false to auxillary=true for auxiliary firmware
-    update_auxillary_flag "true"
+    # Define sizes and their corresponding MAXPX values
+    # Format: NUMPX:NUMLEDS:MAXPX
+    declare -A sizes=(
+        ["36"]="37:9360"    # NUMLEDS=NUMPX+1=37, MAXPX=9360
+        ["60"]="61:12000"   # NUMLEDS=NUMPX+1=61, MAXPX=12000
+        ["72"]="73:12096"   # NUMLEDS=NUMPX+1=73, MAXPX=12096
+        ["120"]="121:14400" # NUMLEDS=NUMPX+1=121, MAXPX=14400
+    )
     
-    # 2. Compile and save auxiliary firmware
-    compile_firmware "other_c3_board" "${RELEASE_DIR}/firmware_auxiliary.bin"
-    
-    # 3. Change back to auxillary=false for main firmware
-    update_auxillary_flag "false"
-    
-    # 4. Compile and save main firmware
-    compile_firmware "other_c3_board" "${RELEASE_DIR}/firmware_main.bin"
-    
-    # 5. Compile and save littlefs.bin (using main configuration)
+    # Compile LittleFS once (same for all sizes)
+    print_info "Compiling LittleFS filesystem (same for all sizes)..."
     compile_littlefs "other_c3_board" "${RELEASE_DIR}/littlefs.bin"
+    
+    # Loop through each size
+    for numpx in "${!sizes[@]}"; do
+        IFS=':' read -r numleds maxpx <<< "${sizes[$numpx]}"
+        
+        print_info "\n=== Processing size: ${numpx} LEDs ==="
+        
+        # Update size parameters
+        update_size_params "${numpx}" "${numleds}" "${maxpx}"
+        
+        # 1. Compile auxiliary firmware
+        update_auxillary_flag "true"
+        compile_firmware "other_c3_board" "${RELEASE_DIR}/firmware_auxiliary_${numpx}.bin"
+        
+        # 2. Compile main firmware
+        update_auxillary_flag "false"
+        compile_firmware "other_c3_board" "${RELEASE_DIR}/firmware_main_${numpx}.bin"
+    done
     
     # Restore original platformio.ini
     print_info "Restoring original platformio.ini"
     mv platformio.ini.backup platformio.ini
     
-    print_info "Binary creation completed successfully!"
+    print_info "\nBinary creation completed successfully!"
     print_info "Files created in: ${RELEASE_DIR}"
     print_info "Files created:"
     ls -lh "${RELEASE_DIR}"
+    
+    # Summary
+    print_info "\n=== SUMMARY ==="
+    print_info "Generated 8 firmware files (main+aux for each size):"
+    print_info "  - 36 LEDs: firmware_main_36.bin, firmware_auxiliary_36.bin"
+    print_info "  - 60 LEDs: firmware_main_60.bin, firmware_auxiliary_60.bin"
+    print_info "  - 72 LEDs: firmware_main_72.bin, firmware_auxiliary_72.bin"
+    print_info "  - 120 LEDs: firmware_main_120.bin, firmware_auxiliary_120.bin"
+    print_info "Generated 1 LittleFS file: littlefs.bin"
 }
 
 # Run main function
