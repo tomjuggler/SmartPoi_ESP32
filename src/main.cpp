@@ -89,6 +89,7 @@ String images5 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
 String currentImages = images;
 String bin = "/a.bin";
 
+volatile int packetSize;
 // FreeRTOS Mutex Semaphores (for thread safety)
 SemaphoreHandle_t bufferMutex = NULL;  // Protects message1Data array in RAM
 SemaphoreHandle_t diskMutex = NULL;    // Protects SPI Flash bus
@@ -194,75 +195,96 @@ void povDisplayTask(void *pvParameters) {
     // Reset task watchdog
     esp_task_wdt_reset();
     
-    // Only run POV display if not in upload mode and pattern requires image display
-    if (!uploadInProgress && pattern >= 2 && pattern <= 69) {
-      // Extract character from bin string (format: "/x.bin" where x is the character)
-      char patternChar = bin.charAt(1);
-      
-      // Check if we need to display an image
-      if (pattern >= 2 && pattern <= 5) {
-        // For patterns 2-5, use currentImages sequence
-        if (imageToUse >= currentImages.length()) {
-          imageToUse = 0;
-        }
-        patternChar = currentImages.charAt(imageToUse);
-      } else if (pattern >= 8 && pattern <= 69) {
-        // For patterns 8-69, use single character pattern
-        patternChar = currentImages.charAt(0);
-      }
-      
-      // Update bin string with current character
-      bin.setCharAt(1, patternChar);
-      
-      // Shadow buffer for local copy to minimize mutex hold time
-      uint8_t* shadowBuffer = (uint8_t*)malloc(MAX_PX);
-      if (shadowBuffer == NULL) {
-        Serial.println("ERROR: Failed to allocate shadow buffer!");
-        vTaskDelay(pdMS_TO_TICKS(10));
-        continue;
-      }
-      int localPxAcross = pxAcross;
-      int localPxDown = pxDown;
-      // Get buffer mutex to safely copy data
-      if (xSemaphoreTake(bufferMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-        // Copy data to shadow buffer
-        memcpy(shadowBuffer, message1Data, MAX_PX);
-        xSemaphoreGive(bufferMutex);
-        
-        // Initialize counter for reading pixel data
-        int counter = 0;
-        
-        // Loop through the pixels to display the image with microsecond timing
-        for (int j = 0; j < localPxAcross; j++) {
-          // Decompress and display column
-          for (int i = 0; i < localPxDown; i++) {
-            byte X = shadowBuffer[counter++]; // Get pixel data from shadow buffer
+    // Handle all patterns in this task to avoid conflicts with loop()
+    if (!uploadInProgress) {
+      switch (pattern) {
+        case 0:
+          // Handle UDP pattern
+          packetSize = Udp.parsePacket();
+          if (packetSize) {
+            handleUDP();
+          }
+          break;
+        case 1:
+          // Handle color jam pattern
+          funColourJam();
+          break;
+        case 7:
+          // Handle black pattern
+          FastLED.showColor(CRGB::Black);
+          break;
+        default:
+          // Handle image display patterns (2-69)
+          if (pattern >= 2 && pattern <= 69) {
+            // Extract character from bin string (format: "/x.bin" where x is the character)
+            char patternChar = bin.charAt(1);
             
-            // Decompress 3-3-2 bit-packed format
-            leds[i].r = (X & 0xE0);          // Red: bits 7-5
-            leds[i].g = ((X << 3) & 0xE0);   // Green: bits 4-2
-            leds[i].b = (X << 6);            // Blue: bits 1-0
-          }
-          
-          // Display the current column of pixels on the LED strip
-          FastLED.show();
-          
-          // Microsecond delay for POV timing
-          ets_delay_us(columnDelay);
-          
-          // Yield briefly to prevent watchdog timeout
-          if (j % 10 == 0) {
-            esp_task_wdt_reset();
-          }
-        }
-        
-        // Free the shadow buffer after use
-        free(shadowBuffer);
-      } else {
-        // Failed to get mutex, free buffer and continue
-        free(shadowBuffer);
-      }
-    }
+            // Check if we need to display an image
+            if (pattern >= 2 && pattern <= 5) {
+              // For patterns 2-5, use currentImages sequence
+              if (imageToUse >= currentImages.length()) {
+                imageToUse = 0;
+              }
+              patternChar = currentImages.charAt(imageToUse);
+            } else if (pattern >= 8 && pattern <= 69) {
+              // For patterns 8-69, use single character pattern
+              patternChar = currentImages.charAt(0);
+            }
+            
+            // Update bin string with current character
+            bin.setCharAt(1, patternChar);
+            
+            // Shadow buffer for local copy to minimize mutex hold time
+            uint8_t* shadowBuffer = (uint8_t*)malloc(MAX_PX);
+            if (shadowBuffer == NULL) {
+              Serial.println("ERROR: Failed to allocate shadow buffer!");
+              vTaskDelay(pdMS_TO_TICKS(10));
+              continue;
+            }
+            int localPxAcross = pxAcross;
+            int localPxDown = pxDown;
+            // Get buffer mutex to safely copy data
+            if (xSemaphoreTake(bufferMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+              // Copy data to shadow buffer
+              memcpy(shadowBuffer, message1Data, MAX_PX);
+              xSemaphoreGive(bufferMutex);
+              
+              // Initialize counter for reading pixel data
+              int counter = 0;
+              
+              // Loop through the pixels to display the image with microsecond timing
+              for (int j = 0; j < localPxAcross; j++) {
+                // Decompress and display column
+                for (int i = 0; i < localPxDown; i++) {
+                  byte X = shadowBuffer[counter++]; // Get pixel data from shadow buffer
+                  
+                  // Decompress 3-3-2 bit-packed format
+                  leds[i].r = (X & 0xE0);          // Red: bits 7-5
+                  leds[i].g = ((X << 3) & 0xE0);   // Green: bits 4-2
+                  leds[i].b = (X << 6);            // Blue: bits 1-0
+                }
+                
+                // Display the current column of pixels on the LED strip
+                FastLED.show();
+                
+                // Microsecond delay for POV timing
+                ets_delay_us(columnDelay);
+                
+                // Yield briefly to prevent watchdog timeout
+                if (j % 10 == 0) {
+                  esp_task_wdt_reset();
+                }
+              }
+              
+              // Free the shadow buffer after use
+              free(shadowBuffer);
+            } else {
+              // Failed to get mutex, free buffer and continue
+              free(shadowBuffer);
+            }
+          } // End of if (pattern >= 2 && pattern <= 69)
+        } // End of switch (pattern)
+      } // End of if (!uploadInProgress)
     
     // Small delay to yield CPU to other tasks
     vTaskDelay(pdMS_TO_TICKS(1));
@@ -356,7 +378,6 @@ void fileReaderTask(void *pvParameters) {
 int uploadCounter = 1;
 bool routerOption = false;
 volatile unsigned long currentMillis = millis();
-volatile int packetSize;
 
 void setup()
 {
@@ -604,22 +625,9 @@ void loop()
 
   if (!uploadInProgress)
   {
-    switch (pattern)
-    {
-    case 0:
-      packetSize = Udp.parsePacket();
-      if (packetSize)
-      {
-        handleUDP();
-      }
-      break;
-    case 1:
-      funColourJam();
-      break;
-    case 7:
-      FastLED.showColor(CRGB::Black);
-      break;
-    }
+    // Pattern handling has been moved to povDisplayTask to avoid conflicts
+    // All pattern logic (0, 1, 2-69, 7) is now handled in the POV display task
+    // This ensures consistent LED control and prevents concurrent execution issues
     yield();
   }
   else
