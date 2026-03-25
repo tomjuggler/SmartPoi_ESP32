@@ -269,8 +269,6 @@ void handleBrightness(AsyncWebServerRequest* request) {
     targetBrightness = constrain(request->arg("brt").toInt(), 20, 255);
     // Note: newBrightness will gradually ramp to targetBrightness via checkBrightness()
     // Save target brightness to EEPROM for persistence
-    EEPROM.write(15, targetBrightness);
-    EEPROM.commit();
     response->setCode(200);
     response->print("{\"Success\":\"Brightness updated\"}");
   } else {
