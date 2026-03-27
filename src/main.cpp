@@ -616,7 +616,7 @@ void loop()
   esp_task_wdt_reset();
   
   ChangePatternPeriodically();
-  checkBrightness();
+  // checkBrightness();
   handleDNSServer();
   // monitorHeapStatus(); // Monitor heap usage every loop iteration
   

@@ -50,6 +50,7 @@ void ChangePatternPeriodically()
  * Called every 20ms, adjusts newBrightness by BRIGHTNESS_RAMP_STEP (5)
  * towards targetBrightness until they match.
  */
+/*
 void checkBrightness()
 {
   static unsigned long previousBrightnessCheck = 0;
@@ -87,3 +88,4 @@ void checkBrightness()
     }
   }
 }
+*/
