@@ -194,6 +194,11 @@ void povDisplayTask(void *pvParameters) {
   while (1) {
     // Reset task watchdog
     esp_task_wdt_reset();
+    // Check and apply brightness changes
+    if (targetBrightness != newBrightness) {
+        newBrightness = targetBrightness;
+        FastLED.setBrightness(newBrightness);
+    }
     
     // Handle all patterns in this task to avoid conflicts with loop()
     if (!uploadInProgress) {
