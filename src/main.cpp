@@ -11,6 +11,9 @@
 #include "tasks.h"
 #include <esp_task_wdt.h>
 
+// Global flag to track if LittleFS is mounted
+bool littleFSMounted = false;
+
 // Global Variable Definitions
 CRGB leds[NUM_LEDS];
 WiFiUDP Udp;
@@ -106,25 +109,21 @@ bool cacheInitialized = false;
 
 void initializePatternFileCache() {
   if (cacheInitialized) return;
-  
+
   Serial.println("Initializing pattern file cache...");
-  
+
   // Check each possible pattern file once and cache the result
   for (int i = 0; i < 62; i++) {
     String testBin = bin;
     testBin.setCharAt(1, images.charAt(i));
-    
+
     // Use exists() instead of open() to avoid framework error messages
-    if (LittleFS.exists(testBin)) {
-      patternFileExistsCache[i] = true;
-    } else {
-      patternFileExistsCache[i] = false;
-    }
-    
+    // Only check if LittleFS is mounted
+    patternFileExistsCache[i] = littleFSMounted ? LittleFS.exists(testBin) : false;
     // Small delay to prevent overwhelming the filesystem
     delay(1);
   }
-  
+
   cacheInitialized = true;
   Serial.println("Pattern file cache initialized");
 }
@@ -133,12 +132,13 @@ void initializePatternFileCache() {
 void refreshPatternFileCacheEntry(char patternChar) {
   int index = images.indexOf(patternChar);
   if (index == -1) return; // Character not in images string
-  
+
   String testBin = bin;
   testBin.setCharAt(1, patternChar);
-  
+
   // Use exists() instead of open() to avoid framework error messages
-  if (LittleFS.exists(testBin)) {
+  // Only check if LittleFS is mounted
+  if (littleFSMounted && LittleFS.exists(testBin)) {
     patternFileExistsCache[index] = true;
   } else {
     patternFileExistsCache[index] = false;
@@ -151,14 +151,15 @@ void refreshPatternFileCache() {
   for (int i = 0; i < 62; i++) {
     String testBin = bin;
     testBin.setCharAt(1, images.charAt(i));
-    
+
     // Use exists() instead of open() to avoid framework error messages
-    if (LittleFS.exists(testBin)) {
+    // Only check if LittleFS is mounted
+    if (littleFSMounted && LittleFS.exists(testBin)) {
       patternFileExistsCache[i] = true;
     } else {
       patternFileExistsCache[i] = false;
     }
-    
+
     delay(1);
   }
   Serial.println("Pattern file cache refreshed");
@@ -315,8 +316,8 @@ void fileReaderTask(void *pvParameters) {
         // Update bin string
         bin.setCharAt(1, targetImage);
         
-        // Check if file exists
-        if (checkPatternFileExists(targetImage)) {
+        // Check if file exists and LittleFS is mounted
+        if (littleFSMounted && checkPatternFileExists(targetImage)) {
           // Get disk mutex to protect SPI Flash bus
           if (xSemaphoreTake(diskMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
             // Open file for reading
@@ -382,29 +383,38 @@ void setup()
 
   EEPROM.begin(512);
 
-  // eepromBrightnessChooser(15); //setting brightness to 20 for startup now. 
+  // eepromBrightnessChooser(15); //setting brightness to 20 for startup now.
   eepromRouterOptionChooser(100);
   eepromWifiModeChooser(5);
   eepromPatternChooser(10);
   eepromReadChannelAndAddress(13, 14, 16, 17, 18);
   EEPROM.commit();
 
-  bool result = LittleFS.begin(true, "/");
-  
-  // Check all files on startup
-  checkFilesInSetup();
-  
-  // Initialize pattern file cache to avoid repeated LittleFS.exists() calls
-  initializePatternFileCache();
-  
-  littleFSLoadSettings();
+  bool result = LittleFS.begin(true);
+  if (!result) {
+    Serial.println("LittleFS mount failed! Error: 258");
+    // Don't format - just continue without filesystem
+    littleFSMounted = false;
+  } else {
+    Serial.println("LittleFS mounted successfully");
+    littleFSMounted = true;
+
+    // Check all files on startup
+    checkFilesInSetup();
+
+    // Initialize pattern file cache to avoid repeated LittleFS.exists() calls
+    initializePatternFileCache();
+
+    littleFSLoadSettings();
+  }
   fastLEDIndicate();
   Udp.begin(LOCAL_PORT);
   setupElegantOTATask(); // Start the OTA task - also Web Server for built-in controls
 
-  // Send check-in to SmartPoi API
+  // Send check-in to SmartPoi API - only if WiFi is in STA mode
+  // Don't delay here, let the system start up normally
   sendSmartPoiCheckin();
-  
+
   // Initialize task watchdog timer with 5 second timeout
   // Check if watchdog is already initialized (might be initialized by Arduino core)
   esp_task_wdt_config_t wdt_config = {
@@ -546,6 +556,7 @@ void sendSmartPoiCheckin()
     return;
   }
 
+  // Wait for WiFi to be initialized and connected
   if (WiFi.status() == WL_CONNECTED)
   {
     HTTPClient http;

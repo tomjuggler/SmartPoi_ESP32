@@ -96,7 +96,7 @@ void littleFSLoadSettings()
   // Check if file exists before opening to avoid framework error logs
   if (LittleFS.exists("/settings.txt")) {
     settings = LittleFS.open("/settings.txt", "r");
-    
+
     if (settings) {
       // File exists, read settings
       Field = settings.readStringUntil('\n');
@@ -109,6 +109,8 @@ void littleFSLoadSettings()
 
       settings.close();
       wifiChooser(router_array, pwd_array);
+    } else {
+      Serial.println("Failed to open settings.txt, using default WiFi settings");
     }
   } else {
     // File doesn't exist, use default values
