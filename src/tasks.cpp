@@ -92,14 +92,9 @@ String formatBytes(size_t bytes) {
 
 // server code:
 String loadSiteHtml() {
-  if (!LittleFS.begin()) {
-    Serial.println("An error occurred while mounting LittleFS");
-    return "Error loading page";
-  }
-
   File file = LittleFS.open("/site.htm", "r");
   if (!file) {
-    Serial.println("Failed to open index.html");
+    Serial.println("Failed to open site.htm");
     return "Error loading page";
   }
 
@@ -109,11 +104,6 @@ String loadSiteHtml() {
 }
 
 String loadIndexHtml() {
-  if (!LittleFS.begin()) {
-    Serial.println("An error occurred while mounting LittleFS");
-    return "Error loading page";
-  }
-
   File file = LittleFS.open("/index.html", "r");
   if (!file) {
     Serial.println("Failed to open index.html");

@@ -93,27 +93,26 @@ void eepromReadChannelAndAddress(int addr1, int addr2, int addr3, int addr4, int
 
 void littleFSLoadSettings()
 {
-  // Try to open the file in read-only mode to check if it exists
-  // This avoids the error messages from LittleFS.exists()
-  settings = LittleFS.open("/settings.txt", "r");
-  
-  if (settings) {
-    // File exists, read settings
-    Field = settings.readStringUntil('\n');
-    char router_array[Field.length() + 1];
-    Field.toCharArray(router_array, Field.length() + 1);
+  // Check if file exists before opening to avoid framework error logs
+  if (LittleFS.exists("/settings.txt")) {
+    settings = LittleFS.open("/settings.txt", "r");
+    
+    if (settings) {
+      // File exists, read settings
+      Field = settings.readStringUntil('\n');
+      char router_array[Field.length() + 1];
+      Field.toCharArray(router_array, Field.length() + 1);
 
-    Field = settings.readStringUntil('\n');
-    char pwd_array[Field.length() + 1];
-    Field.toCharArray(pwd_array, Field.length() + 1);
+      Field = settings.readStringUntil('\n');
+      char pwd_array[Field.length() + 1];
+      Field.toCharArray(pwd_array, Field.length() + 1);
 
-    settings.close();
-    wifiChooser(router_array, pwd_array);
+      settings.close();
+      wifiChooser(router_array, pwd_array);
+    }
   } else {
     // File doesn't exist, use default values
     Serial.println("settings.txt not found, using default WiFi settings");
-    // You might want to use default values or create the file here
-    // For now, we'll just skip loading settings
   }
 }
 

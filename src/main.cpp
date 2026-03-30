@@ -114,12 +114,9 @@ void initializePatternFileCache() {
     String testBin = bin;
     testBin.setCharAt(1, images.charAt(i));
     
-    // Try to open the file in read-only mode to check if it exists
-    // This avoids the error messages from LittleFS.exists()
-    File testFile = LittleFS.open(testBin, "r");
-    if (testFile) {
+    // Use exists() instead of open() to avoid framework error messages
+    if (LittleFS.exists(testBin)) {
       patternFileExistsCache[i] = true;
-      testFile.close();
     } else {
       patternFileExistsCache[i] = false;
     }
@@ -140,12 +137,9 @@ void refreshPatternFileCacheEntry(char patternChar) {
   String testBin = bin;
   testBin.setCharAt(1, patternChar);
   
-  // Try to open the file in read-only mode to check if it exists
-  // This avoids the error messages from LittleFS.exists()
-  File testFile = LittleFS.open(testBin, "r");
-  if (testFile) {
+  // Use exists() instead of open() to avoid framework error messages
+  if (LittleFS.exists(testBin)) {
     patternFileExistsCache[index] = true;
-    testFile.close();
   } else {
     patternFileExistsCache[index] = false;
   }
@@ -158,12 +152,9 @@ void refreshPatternFileCache() {
     String testBin = bin;
     testBin.setCharAt(1, images.charAt(i));
     
-    // Try to open the file in read-only mode to check if it exists
-    // This avoids the error messages from LittleFS.exists()
-    File testFile = LittleFS.open(testBin, "r");
-    if (testFile) {
+    // Use exists() instead of open() to avoid framework error messages
+    if (LittleFS.exists(testBin)) {
       patternFileExistsCache[i] = true;
-      testFile.close();
     } else {
       patternFileExistsCache[i] = false;
     }
@@ -239,13 +230,9 @@ void povDisplayTask(void *pvParameters) {
             // Update bin string with current character
             bin.setCharAt(1, patternChar);
             
-            // Shadow buffer for local copy to minimize mutex hold time
-            uint8_t* shadowBuffer = (uint8_t*)malloc(MAX_PX);
-            if (shadowBuffer == NULL) {
-              Serial.println("ERROR: Failed to allocate shadow buffer!");
-              vTaskDelay(pdMS_TO_TICKS(10));
-              continue;
-            }
+            // Static shadow buffer to avoid repeated heap allocation/fragmentation
+            static uint8_t shadowBuffer[MAX_PX];
+            
             int localPxAcross = pxAcross;
             int localPxDown = pxDown;
             // Get buffer mutex to safely copy data
@@ -280,12 +267,9 @@ void povDisplayTask(void *pvParameters) {
                   esp_task_wdt_reset();
                 }
               }
-              
-              // Free the shadow buffer after use
-              free(shadowBuffer);
             } else {
-              // Failed to get mutex, free buffer and continue
-              free(shadowBuffer);
+              // Failed to get mutex, skip this iteration
+              vTaskDelay(pdMS_TO_TICKS(1));
             }
           } // End of if (pattern >= 2 && pattern <= 69)
         } // End of switch (pattern)
@@ -405,7 +389,10 @@ void setup()
   eepromReadChannelAndAddress(13, 14, 16, 17, 18);
   EEPROM.commit();
 
-  bool result = LittleFS.begin(true);
+  bool result = LittleFS.begin(true, "/");
+  
+  // Check all files on startup
+  checkFilesInSetup();
   
   // Initialize pattern file cache to avoid repeated LittleFS.exists() calls
   initializePatternFileCache();
