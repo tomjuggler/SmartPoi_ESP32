@@ -10,6 +10,7 @@ extern long interval;
 #include <FastLED.h>
 
 extern AsyncWebServer server;
+extern volatile bool leds_off; // Flag to track if LEDs are already turned off (pattern 7)
 
 String getContentType(String filename) {
   if(filename.endsWith(".htm")) return "text/html";
@@ -205,7 +206,7 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
       }
     }
     else if(newPatt == 7) {
-      FastLED.showColor(CRGB::Black);
+      leds_off = false; // Reset flag so povDisplayTask will turn LEDs off
       pattern = patternChooser;
     } else {
       pattern = patternChooser;
@@ -249,7 +250,7 @@ void handleRouterSettings(AsyncWebServerRequest* request) {
     routerOption = (newRouter == 1);
     EEPROM.write(100, newRouter);
     EEPROM.commit();
-    FastLED.showColor(CRGB::Black);
+    leds_off = false; // Reset flag so povDisplayTask will turn LEDs off
     response->setCode(200);
     response->print("{\"Success\":\"Router mode set\"}");
   } else {
@@ -431,6 +432,7 @@ void handleFileCreate(AsyncWebServerRequest *request) {
   // Save current pattern and set to 7 (LEDs off) for file operation
   int savedPattern = pattern;
   pattern = 7;
+  leds_off = false; // Reset flag so povDisplayTask will turn LEDs off
 
   File file = LittleFS.open(path, "w");
   file.close();
@@ -479,6 +481,7 @@ void handleFileDelete(AsyncWebServerRequest *request) {
   // Save current pattern and set to 7 (LEDs off) for file operation
   int savedPattern = pattern;
   pattern = 7;
+  leds_off = false; // Reset flag so povDisplayTask will turn LEDs off
 
   if(!LittleFS.remove(path)) {
     // Restore saved pattern before returning error
@@ -522,7 +525,8 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
   // Save current pattern and set to 7 (LEDs off) for file operation
   int savedPattern = pattern;
   pattern = 7;
-  
+  leds_off = false; // Reset flag so povDisplayTask will turn LEDs off
+
   // Handle settings.txt
   File settings = LittleFS.open("/settings.txt", "w");
   if (settings) {
@@ -593,6 +597,7 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         // Save current pattern and set to 7 (LEDs off) for file operation
         savedPattern = pattern;
         pattern = 7;
+        leds_off = false; // Reset flag so povDisplayTask will turn LEDs off
 
         // Set upload flag to disable FastLED operations
         uploadInProgress = true;

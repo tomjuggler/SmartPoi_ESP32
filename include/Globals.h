@@ -77,6 +77,7 @@ extern uint8_t G1;
 extern uint8_t M1;
 extern bool channelChange;
 extern bool uploadInProgress;  // Flag to disable FastLED operations during upload
+extern volatile bool leds_off; // Flag to track if LEDs are already turned off (pattern 7)
 extern IPAddress apIPauxillary;
 extern IPAddress ipGatewayauxillary;
 extern IPAddress ipSubnet;

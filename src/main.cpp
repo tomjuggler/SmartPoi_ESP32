@@ -62,6 +62,7 @@ unsigned long previousMillis3 = 0;
 long interval = 5000;
 bool channelChange = false;
 bool uploadInProgress = false; // Flag to disable FastLED operations during upload
+volatile bool leds_off = true; // Flag to track if LEDs are already turned off (pattern 7) - initialized to true
 bool savingToSpiffs = false;
 unsigned long previousFlashy = 0;
 const long intervalBetweenFlashy = 5;
@@ -207,8 +208,11 @@ void povDisplayTask(void *pvParameters) {
           funColourJam();
           break;
         case 7:
-          // Handle black pattern
-          FastLED.showColor(CRGB::Black);
+          // Handle black pattern - only turn LEDs off once
+          if (!leds_off) {
+            leds_off = true;
+            FastLED.showColor(CRGB::Black);
+          }
           break;
         default:
           // Handle image display patterns (2-69)
