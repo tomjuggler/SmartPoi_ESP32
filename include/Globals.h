@@ -12,7 +12,9 @@
 #include <LittleFS.h>
 #include <WiFiUdp.h>
 #include <FastLED.h>
-
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
 
 
 // Configuration Constants
@@ -27,6 +29,16 @@ constexpr int BRIGHTNESS_RAMP_STEP = 5;       // brightness change per interval
 
 constexpr int DATA_PIN = DATAPIN;
 constexpr int CLOCK_PIN = CLOCKPIN;
+
+// FreeRTOS Task Priorities (from blueprint)
+#define POV_TASK_PRIO 5
+#define WEB_TASK_PRIO 3
+#define FILE_TASK_PRIO 2
+
+// FreeRTOS Task Stack Sizes
+#define POV_TASK_STACK_SIZE 8192
+#define FILE_TASK_STACK_SIZE 8192
+#define WEB_TASK_STACK_SIZE 8192
 
 // Global Extern Variables
 extern CRGB leds[NUM_LEDS];
@@ -65,6 +77,7 @@ extern uint8_t G1;
 extern uint8_t M1;
 extern bool channelChange;
 extern bool uploadInProgress;  // Flag to disable FastLED operations during upload
+extern volatile bool leds_off; // Flag to track if LEDs are already turned off (pattern 7)
 extern IPAddress apIPauxillary;
 extern IPAddress ipGatewayauxillary;
 extern IPAddress ipSubnet;
@@ -77,13 +90,24 @@ extern String images4;
 extern String images5;
 extern String currentImages;
 
+// FreeRTOS Mutex Semaphores (for thread safety)
+extern SemaphoreHandle_t bufferMutex;  // Protects message1Data array in RAM
+extern SemaphoreHandle_t diskMutex;    // Protects SPI Flash bus
+
+// FreeRTOS Task Handles
+extern TaskHandle_t povTaskHandle;
+extern TaskHandle_t fileTaskHandle;
+extern TaskHandle_t webTaskHandle;
+
 // Function declarations
-extern bool updateCurrentImagesForPattern(int pattern); 
+extern bool updateCurrentImagesForPattern(int pattern);
 
 // WiFi Mode Constants
   #define WIFI_STA WIFI_MODE_STA
   #define WIFI_AP WIFI_MODE_AP
 
 // Shared Functions
+extern void monitorHeapStatus();
+extern bool isMemoryAvailableForWebResponse();
 
 #endif
