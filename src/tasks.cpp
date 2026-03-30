@@ -90,6 +90,26 @@ String formatBytes(size_t bytes) {
   return String(dblBytes, 2) + suffixes[i];
 }
 
+bool isMemoryAvailableForWebResponse() {
+  // Check if we have sufficient free heap for web operations
+  size_t freeHeap = ESP.getFreeHeap();
+  size_t minFreeHeap = 8192; // Minimum free heap needed for web responses
+
+  if (freeHeap < minFreeHeap) {
+    Serial.printf("[MEMORY] Low memory detected: %u bytes free, need %u bytes\n", freeHeap, minFreeHeap);
+    return false;
+  }
+
+  // Also check fragmentation by looking at max allocatable block
+  size_t maxAlloc = ESP.getMaxAllocHeap();
+  if (maxAlloc < 4096) { // Need at least 4KB contiguous block
+    Serial.printf("[MEMORY] Memory fragmentation detected: max alloc %u bytes\n", maxAlloc);
+    return false;
+  }
+
+  return true;
+}
+
 // server code:
 String loadSiteHtml() {
   File file = LittleFS.open("/site.htm", "r");
@@ -147,6 +167,12 @@ void onOTAEnd(bool success)
 }
 
 void handlePatternSettings(AsyncWebServerRequest* request) {
+  // Check if we have enough memory for a response
+  if (ESP.getFreeHeap() < 8192) {
+    request->send(503, "text/plain", "Service Unavailable - Low Memory");
+    return;
+  }
+
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   response->addHeader("Access-Control-Allow-Origin", "*");
   response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -206,6 +232,12 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
 }
 
 void handleRouterSettings(AsyncWebServerRequest* request) {
+  // Check if we have enough memory for a response
+  if (!isMemoryAvailableForWebResponse()) {
+    request->send(503, "text/plain", "Service Unavailable - Low Memory");
+    return;
+  }
+
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   response->addHeader("Access-Control-Allow-Origin", "*");
   response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -228,6 +260,12 @@ void handleRouterSettings(AsyncWebServerRequest* request) {
 }
 
 void handleIntervalChange(AsyncWebServerRequest* request) {
+  // Check if we have enough memory for a response
+  if (!isMemoryAvailableForWebResponse()) {
+    request->send(503, "text/plain", "Service Unavailable - Low Memory");
+    return;
+  }
+
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   response->addHeader("Access-Control-Allow-Origin", "*");
   response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -249,6 +287,12 @@ void handleIntervalChange(AsyncWebServerRequest* request) {
 }
 
 void handleBrightness(AsyncWebServerRequest* request) {
+  // Check if we have enough memory for a response
+  if (!isMemoryAvailableForWebResponse()) {
+    request->send(503, "text/plain", "Service Unavailable - Low Memory");
+    return;
+  }
+
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   response->addHeader("Access-Control-Allow-Origin", "*");
   response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -270,6 +314,12 @@ void handleBrightness(AsyncWebServerRequest* request) {
 
 // File operations handlers
 void handleFileList(AsyncWebServerRequest *request) {
+  // Check if we have enough memory for a response
+  if (!isMemoryAvailableForWebResponse()) {
+    request->send(503, "text/plain", "Service Unavailable - Low Memory");
+    return;
+  }
+
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   response->addHeader("Access-Control-Allow-Origin", "*");
   response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -328,6 +378,12 @@ void handleFileRead(AsyncWebServerRequest *request) {
     response->addHeader("Access-Control-Allow-Credentials", "true");
     request->send(response);
   } else {
+    // Check if we have enough memory for a response
+    if (!isMemoryAvailableForWebResponse()) {
+      request->send(503, "text/plain", "Service Unavailable - Low Memory");
+      return;
+    }
+
     // Create error response with headers
     AsyncResponseStream* response = request->beginResponseStream("text/plain");
     response->addHeader("Access-Control-Allow-Origin", "*");
@@ -341,6 +397,12 @@ void handleFileRead(AsyncWebServerRequest *request) {
 }
 
 void handleFileCreate(AsyncWebServerRequest *request) {
+  // Check if we have enough memory for a response
+  if (!isMemoryAvailableForWebResponse()) {
+    request->send(503, "text/plain", "Service Unavailable - Low Memory");
+    return;
+  }
+
   AsyncResponseStream* response = request->beginResponseStream("text/plain");
   response->addHeader("Access-Control-Allow-Origin", "*");
   response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -381,6 +443,12 @@ void handleFileCreate(AsyncWebServerRequest *request) {
 }
 
 void handleFileDelete(AsyncWebServerRequest *request) {
+  // Check if we have enough memory for a response
+  if (!isMemoryAvailableForWebResponse()) {
+    request->send(503, "text/plain", "Service Unavailable - Low Memory");
+    return;
+  }
+
   AsyncResponseStream* response = request->beginResponseStream("text/plain");
   response->addHeader("Access-Control-Allow-Origin", "*");
   response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -439,6 +507,12 @@ void handleFileDelete(AsyncWebServerRequest *request) {
 }
 
 void handleGeneralSettings(AsyncWebServerRequest* request) {
+  // Check if we have enough memory for a response
+  if (!isMemoryAvailableForWebResponse()) {
+    request->send(503, "text/plain", "Service Unavailable - Low Memory");
+    return;
+  }
+
   AsyncResponseStream* response = request->beginResponseStream("application/json");
   response->addHeader("Access-Control-Allow-Origin", "*");
   response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -513,37 +587,49 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
     static File fsUploadFile;
     static size_t totalFileSize = 0;
     static int savedPattern = -1;  // Static variable to preserve saved pattern across calls
-    static String fullPath;        // Static variable to store the full path for the upload
-    
+    static char fullPath[16];      // Static buffer for full path (max: "/a.bin" + null)
+
     if(!index) { // Start of upload
         // Save current pattern and set to 7 (LEDs off) for file operation
         savedPattern = pattern;
         pattern = 7;
-        
+
         // Set upload flag to disable FastLED operations
         uploadInProgress = true;
         // Clear memory and reset tracking
         clearArray();
         totalFileSize = 0;
-        
+
         // Clean up FastLED/RMT before upload to prevent channel state errors
         FastLED.clear();
         FastLED.show();
         delay(50);  // Allow RMT channel to complete any pending operations
-        
-        // Create a new variable instead of modifying const parameter
-        fullPath = "/" + filename;
-        
+
+        // Build full path in buffer (max 16 chars for safety)
+        snprintf(fullPath, sizeof(fullPath), "/%s", filename.c_str());
+
         // Validate filename format
-        if (fullPath.length() != 6 || images.indexOf(fullPath[1]) == -1) {
+        if (strlen(fullPath) != 6 || images.indexOf(fullPath[1]) == -1) {
+            // Reset upload state before returning error
+            uploadInProgress = false;
+            if (savedPattern != -1) {
+                pattern = savedPattern;
+                savedPattern = -1;
+            }
             request->send(400, "text/plain", "Invalid filename");
             return;
         }
 
         // Check remaining space before opening file
         size_t remainingSpace = getRemainingSpace();
-        if(request->contentLength() > remainingSpace || 
+        if(request->contentLength() > remainingSpace ||
            request->contentLength() > MAX_PX) {
+            // Reset upload state before returning error
+            uploadInProgress = false;
+            if (savedPattern != -1) {
+                pattern = savedPattern;
+                savedPattern = -1;
+            }
             request->send(507, "text/plain", "File size exceeds limit");
             return;
         }
@@ -551,6 +637,12 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         // Attempt to open file
         fsUploadFile = LittleFS.open(fullPath, "w");
         if(!fsUploadFile) {
+            // Reset upload state before returning error
+            uploadInProgress = false;
+            if (savedPattern != -1) {
+                pattern = savedPattern;
+                savedPattern = -1;
+            }
             request->send(500, "text/plain", "Upload failed");
             return;
         }
@@ -560,10 +652,16 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
     if(len > 0 && fsUploadFile) {
         // Check cumulative size during write
         totalFileSize += len;
-        if(totalFileSize > MAX_PX || 
+        if(totalFileSize > MAX_PX ||
            totalFileSize > getRemainingSpace()) {
             fsUploadFile.close();
             LittleFS.remove(fullPath);
+            // Reset upload state before returning error
+            uploadInProgress = false;
+            if (savedPattern != -1) {
+                pattern = savedPattern;
+                savedPattern = -1;
+            }
             request->send(507, "text/plain", "File size exceeds limit");
             return;
         }
@@ -587,7 +685,7 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
         
         // Refresh cache entry for this pattern file
         // Pattern files have format like /a.bin where second char is pattern char
-        if(fullPath.length() >= 2) {
+        if(strlen(fullPath) >= 2) {
             char patternChar = fullPath[1];
             refreshPatternFileCacheEntry(patternChar);
             // Also mark file for reload if it's currently loaded
@@ -596,6 +694,12 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
     }
     // Handle aborted uploads
     if(!final && !fsUploadFile) {
+        // Reset upload state before returning error
+        uploadInProgress = false;
+        if (savedPattern != -1) {
+            pattern = savedPattern;
+            savedPattern = -1;
+        }
         request->send(500, "text/plain", "Upload aborted");
     }
 }
@@ -705,6 +809,12 @@ void elegantOTATask(void *pvParameters)
   });
 
   server.on("/get-pixels", HTTP_GET, [](AsyncWebServerRequest *request) {
+    // Check if we have enough memory for a response
+    if (!isMemoryAvailableForWebResponse()) {
+      request->send(503, "text/plain", "Service Unavailable - Low Memory");
+      return;
+    }
+
     AsyncResponseStream* response = request->beginResponseStream("text/plain");
     response->addHeader("Access-Control-Allow-Origin", "*");
     response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -715,6 +825,12 @@ void elegantOTATask(void *pvParameters)
   });
 
   server.on("/options", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
+    // Check if we have enough memory for a response
+    if (!isMemoryAvailableForWebResponse()) {
+      request->send(503, "text/plain", "Service Unavailable - Low Memory");
+      return;
+    }
+
     AsyncResponseStream* response = request->beginResponseStream("text/plain");
     response->addHeader("Access-Control-Allow-Origin", "*");
     response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -725,6 +841,12 @@ void elegantOTATask(void *pvParameters)
 
   // Existing migrated routes (keep these):
   server.on("/resetimagetouse", HTTP_GET, [](AsyncWebServerRequest *request) {
+    // Check if we have enough memory for a response
+    if (!isMemoryAvailableForWebResponse()) {
+      request->send(503, "text/plain", "Service Unavailable - Low Memory");
+      return;
+    }
+
     imageToUse = 0;
     previousMillis3 = millis();
     AsyncResponseStream* response = request->beginResponseStream("text/plain");
@@ -737,6 +859,12 @@ void elegantOTATask(void *pvParameters)
   });
 
   server.on("/returnsettings", HTTP_GET, [](AsyncWebServerRequest *request) {
+    // Check if we have enough memory for a response
+    if (!isMemoryAvailableForWebResponse()) {
+      request->send(503, "text/plain", "Service Unavailable - Low Memory");
+      return;
+    }
+
     AsyncResponseStream* response = request->beginResponseStream("text/html");
     response->addHeader("Access-Control-Allow-Origin", "*");
     response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
@@ -744,29 +872,30 @@ void elegantOTATask(void *pvParameters)
     response->addHeader("Access-Control-Allow-Credentials", "true");
     
     File settings = LittleFS.open("/settings.txt", "r");
-    String content = settings.readStringUntil('\n') + "," + 
-                    settings.readStringUntil('\n') + "," + 
-                    String(apChannel) + "," + 
-                    String(addrNumA) + "," + 
-                    String(addrNumB) + "," + 
-                    String(addrNumC) + "," + 
-                    String(addrNumD) + "," + 
-                    String(patternChooser);
+    // Use efficient string building to reduce memory fragmentation
+    char buffer[256]; // Should be enough for: ssid(32),pwd(32),channel(2),addresses(3*3),pattern(2) + separators
+    String ssid = settings.readStringUntil('\n');
+    String pwd = settings.readStringUntil('\n');
     settings.close();
-    response->print(content);
+
+    // Use snprintf for efficient string building
+    snprintf(buffer, sizeof(buffer), "%s,%s,%d,%d,%d,%d,%d,%d",
+             ssid.c_str(), pwd.c_str(),
+             apChannel, addrNumA, addrNumB, addrNumC, addrNumD, patternChooser);
+
+    response->print(buffer);
     request->send(response);
   });
 
   // notFound handler (for captive portal)
   server.onNotFound([](AsyncWebServerRequest *request) {
-    AsyncResponseStream* response = request->beginResponseStream("text/plain");
-    response->addHeader("Access-Control-Allow-Origin", "*");
-    response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
-    response->addHeader("Access-Control-Allow-Headers", "Content-Type");
-    response->addHeader("Access-Control-Allow-Credentials", "true");
-    // response->setCode(404);
-    // response->print("Not found");
-    // request->send(response);
+    // Check if we have enough memory for a response
+    if (!isMemoryAvailableForWebResponse()) {
+      request->redirect("/");
+      return;
+    }
+
+    // For captive portal, just redirect to root
     request->redirect("/");
   });
 

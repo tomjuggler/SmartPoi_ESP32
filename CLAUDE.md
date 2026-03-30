@@ -39,10 +39,10 @@ This is a SmartPoi (Persistence of Vision) project for ESP32 microcontrollers th
 
 ### PlatformIO Commands
 ```bash
-# Build for default environment (dfrobot_firebeetle2_esp32s3)
-pio run
+# Build for all environments (do not use this) 
+pio run 
 
-# Build for specific environment
+# Build for specific environment, preferable (use default)
 pio run -e dfrobot_beetle_esp32c3
 
 # Upload to connected device
@@ -51,10 +51,10 @@ pio run -t upload
 # Monitor serial output
 pio device monitor
 
-# Clean build
+# Clean build - usually not needed unless we change a library
 pio run -t clean
 
-# Build filesystem image
+# Build filesystem image - filesystem does not change much, unless we are editing data folder
 pio run -t buildfs
 
 # Upload filesystem
@@ -65,13 +65,13 @@ pio run -t uploadfs
 ```bash
 # Run WiFi/HTTP test scripts (requires NetworkManager and curl)
 cd tests
-./test_wifi_http.sh          # Actual test
-./test_wifi_http_dryrun.sh   # Dry-run simulation
+./test_wifi_http.sh          # Actual test - may be old/not relevant
+./test_wifi_http_dryrun.sh   # Dry-run simulation (not relevant?)
 ```
 
 ### Release Creation
 ```bash
-# Create release binaries (see tests/create_bins.sh)
+# Create release binaries (see tests/create_bins.sh) - only do this if specifically prompted, takes a long time
 cd tests
 ./create_bins.sh
 ```
@@ -90,7 +90,7 @@ cd tests
 
 ### WiFi Configuration
 - AP mode: SSID `Smart_Poi9`, password `SmartOne`, IP `192.168.1.1`
-- STA mode: Configurable via web interface
+- STA mode: Configurable via web interface and data/settings.txt file
 - Settings stored in EEPROM and LittleFS
 
 ## Memory Management
@@ -166,6 +166,6 @@ File reader task monitors `pattern` and `imageToUse` variables, loads appropriat
 
 ## Board Support
 
-1. **DFRobot FireBeetle 2 ESP32-S3**: Primary target, APA102 LEDs
+1. **DFRobot FireBeetle 2 ESP32-S3**: Old target, APA102 LEDs
 2. **DFRobot Beetle ESP32-C3**: Secondary target, WS2812 LEDs
-3. **Other ESP32-C3 boards**: Configurable via environment settings
+3. **Other ESP32-C3 boards**: Primary Target, WS2812 LEDs by default

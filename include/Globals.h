@@ -37,8 +37,8 @@ constexpr int CLOCK_PIN = CLOCKPIN;
 
 // FreeRTOS Task Stack Sizes
 #define POV_TASK_STACK_SIZE 8192
-#define FILE_TASK_STACK_SIZE 4096
-#define WEB_TASK_STACK_SIZE 4096
+#define FILE_TASK_STACK_SIZE 8192
+#define WEB_TASK_STACK_SIZE 8192
 
 // Global Extern Variables
 extern CRGB leds[NUM_LEDS];
@@ -99,12 +99,14 @@ extern TaskHandle_t fileTaskHandle;
 extern TaskHandle_t webTaskHandle;
 
 // Function declarations
-extern bool updateCurrentImagesForPattern(int pattern); 
+extern bool updateCurrentImagesForPattern(int pattern);
 
 // WiFi Mode Constants
   #define WIFI_STA WIFI_MODE_STA
   #define WIFI_AP WIFI_MODE_AP
 
 // Shared Functions
+extern void monitorHeapStatus();
+extern bool isMemoryAvailableForWebResponse();
 
 #endif
