@@ -528,12 +528,14 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
   leds_off = false; // Reset flag so povDisplayTask will turn LEDs off
 
   // Handle settings.txt
-  File settings = LittleFS.open("/settings.txt", "w");
-  if (settings) {
-    settings.print(request->arg("ssid") + "\n" + request->arg("pwd"));
-    settings.close();
+  // Only update settings.txt if ssid or pwd parameters are provided
+  if (request->hasArg("ssid") || request->hasArg("pwd")) {
+    File settings = LittleFS.open("/settings.txt", "w");
+    if (settings) {
+      settings.print(request->arg("ssid") + "\n" + request->arg("pwd"));
+      settings.close();
+    }
   }
-  
   // Restore saved pattern
   pattern = savedPattern;
 
