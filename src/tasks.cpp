@@ -543,6 +543,7 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
   if(request->hasArg("channel")) {
     int newChannel = request->arg("channel").toInt();
     EEPROM.write(13, newChannel);
+    apChannel = newChannel;
   }
 
   // Address settings
