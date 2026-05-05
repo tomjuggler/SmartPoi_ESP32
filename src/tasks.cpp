@@ -183,7 +183,7 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
   if(request->hasArg("patternChooserChange")) {
     int newPatt = request->arg("patternChooserChange").toInt();
     
-    if(newPatt < 0 || newPatt > 62) {
+    if(newPatt < 0 || newPatt > 69) {
         response->setCode(400);
         response->print("{\"Error\":\"Invalid pattern\"}");
         request->send(response);
