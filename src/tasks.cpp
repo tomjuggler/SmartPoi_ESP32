@@ -183,7 +183,7 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
   if(request->hasArg("patternChooserChange")) {
     int newPatt = request->arg("patternChooserChange").toInt();
     
-    if(newPatt < 0 || newPatt > 69) {
+    if(newPatt < 0 || newPatt > 70) {
         response->setCode(400);
         response->print("{\"Error\":\"Invalid pattern\"}");
         request->send(response);
@@ -572,6 +572,9 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
         EEPROM.write(10, 1);
         EEPROM.write(11, 1);
       }
+    }
+    else if(newPatt == 70) {
+      pattern = patternChooser;
     }
   }
 

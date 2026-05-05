@@ -214,6 +214,10 @@ void povDisplayTask(void *pvParameters) {
             FastLED.showColor(CRGB::Black);
           }
           break;
+        case 70:
+          // Handle cylon multicolour pattern
+          cylonMulticolour();
+          break;
         default:
           // Handle image display patterns (2-69)
           if (pattern >= 2 && pattern <= 69) {
