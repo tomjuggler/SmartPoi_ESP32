@@ -167,7 +167,7 @@ void wifiChooser(char router_array[], char pwd_array[])
         }
         else
         {
-            WiFi.mode(WIFI_AP);
+            WiFi.mode(WIFI_AP_STA);  // AP+STA: AP serves web UI, idle STA enables ESP-NOW send
             WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
             WiFi.softAP(apName, apPass, apChannel);
             dnsServer.start(DNS_PORT, "*", apIP);

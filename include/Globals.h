@@ -107,6 +107,7 @@ extern bool updateCurrentImagesForPattern(int pattern);
 // WiFi Mode Constants
   #define WIFI_STA WIFI_MODE_STA
   #define WIFI_AP WIFI_MODE_AP
+  #define WIFI_AP_STA WIFI_MODE_APSTA  // AP+STA: needed for ESP-NOW send on main device
 
 // Shared Functions
 extern void monitorHeapStatus();
