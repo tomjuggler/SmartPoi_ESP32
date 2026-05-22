@@ -110,11 +110,15 @@ void littleFSLoadSettings()
       settings.close();
       wifiChooser(router_array, pwd_array);
     } else {
+      #if SERIAL_DEBUG
       Serial.println("Failed to open settings.txt, using default WiFi settings");
+      #endif
     }
   } else {
     // File doesn't exist, use default values
+    #if SERIAL_DEBUG
     Serial.println("settings.txt not found, using default WiFi settings");
+    #endif
   }
 }
 
@@ -173,14 +177,18 @@ void wifiChooser(char router_array[], char pwd_array[])
     {
         WiFi.mode(WIFI_STA);
         WiFiMulti.addAP(router_array, pwd_array);
+        #if SERIAL_DEBUG
         Serial.print("Connecting to: ");
         Serial.println(router_array);
         Serial.print("Attempt: ");
+        #endif
         byte wifiConnectAttemptCount = 0;
         while (WiFiMulti.run() != WL_CONNECTED)
         {
+            #if SERIAL_DEBUG
             Serial.print(int(wifiConnectAttemptCount));
             Serial.print(", ");
+            #endif
             wifiConnectAttemptCount++;
             if (wifiConnectAttemptCount > 18)
             {

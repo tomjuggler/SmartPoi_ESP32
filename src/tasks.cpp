@@ -71,12 +71,14 @@ void monitorHeapStatus() {
   // Log heap status every 30 seconds
   if (now - lastHeapLog > 30000) {
     lastHeapLog = now;
+    #if SERIAL_DEBUG
     Serial.print("[HEAP] Free: ");
     Serial.print(ESP.getFreeHeap());
     Serial.print(", Min Free: ");
     Serial.print(ESP.getMinFreeHeap());
     Serial.print(", Max Alloc: ");
     Serial.println(ESP.getMaxAllocHeap());
+    #endif
   }
 }
 
@@ -97,14 +99,18 @@ bool isMemoryAvailableForWebResponse() {
   size_t minFreeHeap = 8192; // Minimum free heap needed for web responses
 
   if (freeHeap < minFreeHeap) {
+    #if SERIAL_DEBUG
     Serial.printf("[MEMORY] Low memory detected: %u bytes free, need %u bytes\n", freeHeap, minFreeHeap);
+    #endif
     return false;
   }
 
   // Also check fragmentation by looking at max allocatable block
   size_t maxAlloc = ESP.getMaxAllocHeap();
   if (maxAlloc < 4096) { // Need at least 4KB contiguous block
+    #if SERIAL_DEBUG
     Serial.printf("[MEMORY] Memory fragmentation detected: max alloc %u bytes\n", maxAlloc);
+    #endif
     return false;
   }
 
@@ -115,7 +121,9 @@ bool isMemoryAvailableForWebResponse() {
 String loadSiteHtml() {
   File file = LittleFS.open("/site.htm", "r");
   if (!file) {
+    #if SERIAL_DEBUG
     Serial.println("Failed to open site.htm");
+    #endif
     return "Error loading page";
   }
 
@@ -127,7 +135,9 @@ String loadSiteHtml() {
 String loadIndexHtml() {
   File file = LittleFS.open("/index.html", "r");
   if (!file) {
+    #if SERIAL_DEBUG
     Serial.println("Failed to open index.html");
+    #endif
     return "Error loading page";
   }
 
@@ -139,7 +149,9 @@ String loadIndexHtml() {
 void onOTAStart()
 {
   // Log when OTA has started
+  #if SERIAL_DEBUG
   Serial.println("OTA update started!");
+  #endif
   // <Add your own code here>
 }
 
@@ -149,7 +161,9 @@ void onOTAProgress(size_t current, size_t final)
   if (millis() - ota_progress_millis > 1000)
   {
     ota_progress_millis = millis();
+    #if SERIAL_DEBUG
     Serial.printf("OTA Progress Current: %u bytes, Final: %u bytes\n", current, final);
+    #endif
   }
 }
 
@@ -158,11 +172,15 @@ void onOTAEnd(bool success)
   // Log when OTA has finished
   if (success)
   {
+    #if SERIAL_DEBUG
     Serial.println("OTA update finished successfully!");
+    #endif
   }
   else
   {
+    #if SERIAL_DEBUG
     Serial.println("There was an error during OTA update!");
+    #endif
   }
   // <Add your own code here>
 }
