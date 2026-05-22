@@ -853,6 +853,22 @@ void elegantOTATask(void *pvParameters)
     request->send(response);
   });
 
+  server.on("/poi-available", HTTP_GET, [](AsyncWebServerRequest *request) {
+    // Check if we have enough memory for a response
+    if (!isMemoryAvailableForWebResponse()) {
+      request->send(503, "text/plain", "Service Unavailable - Low Memory");
+      return;
+    }
+
+    AsyncResponseStream* response = request->beginResponseStream("text/plain");
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, FETCH");
+    response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+    response->addHeader("Access-Control-Allow-Credentials", "true");
+    response->print("1");
+    request->send(response);
+  });
+
   server.on("/options", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
     // Check if we have enough memory for a response
     if (!isMemoryAvailableForWebResponse()) {
