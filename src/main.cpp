@@ -718,6 +718,16 @@ void loop()
   esp_task_wdt_reset();
   
   ChangePatternPeriodically();
+  
+  // ESP-NOW pattern-state sync broadcast (main only, AP mode only)
+  // Keeps auxiliary devices in sync with main's pattern/image/interval
+  if (!auxillary && wifiModeChooser == 1) {
+    static unsigned long lastSyncBroadcast = 0;
+    if (millis() - lastSyncBroadcast >= 1000) {
+      lastSyncBroadcast = millis();
+      broadcastSync();
+    }
+  }
   // checkBrightness();
   handleDNSServer();
   monitorHeapStatus(); // Monitor heap usage every loop iteration

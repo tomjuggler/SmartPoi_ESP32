@@ -14,6 +14,7 @@ extern uint8_t R1;
 extern uint8_t G1;
 extern uint8_t M1;
 extern bool channelChange;
+extern String bin;
 
 void handleUDP() {
     static unsigned long lastPacketTime = 0;
@@ -62,7 +63,17 @@ void handleUDP() {
 // Receives 3-3-2 bit-packed pixel data identical to UDP format
 // ESP-IDF v5.x signature: first param is esp_now_recv_info_t* (not uint8_t*)
 void onDataReceived(const esp_now_recv_info_t *recv_info, const uint8_t *incomingData, int len) {
-    // Only process if in pattern 0 (UDP/ESP-NOW mode)
+    // Check for sync packet first (always process, regardless of pattern)
+    // Sync packets: 6 bytes, byte[0] == 0x01 (distinct from pixel data which is NUM_PX bytes)
+    if (len == 6 && incomingData[0] == 0x01) {
+        // Only auxiliary applies sync; main ignores its own broadcasts
+        if (auxillary) {
+            applySync(incomingData);
+        }
+        return;
+    }
+
+    // Only process pixel data if in pattern 0 (UDP/ESP-NOW mode)
     if (pattern != 0) return;
 
     // Only process if data size matches expected pixel count
@@ -104,4 +115,87 @@ void onDataReceived(const esp_now_recv_info_t *recv_info, const uint8_t *incomin
         leds[i].b = (X << 6);            // Blue:  bits 1–0
     }
     FastLED.show();
+}
+
+// ============================================================
+// ESP-NOW Pattern-State Sync Broadcast (Main → Auxiliary)
+// ============================================================
+// Called periodically from loop() on main device only.
+// Sends current pattern, imageToUse, image character, and interval.
+// Only broadcasts in AP mode (wifiModeChooser == 1).
+void broadcastSync() {
+    // Only main broadcasts; auxiliary is silent
+    if (auxillary) return;
+    
+    // Only in AP mode (wifiModeChooser == 1)
+    if (wifiModeChooser != 1) return;
+    
+    uint8_t syncPacket[6];
+    syncPacket[0] = 0x01;                     // sync packet type identifier
+    syncPacket[1] = (uint8_t)pattern;          // current pattern number
+    syncPacket[2] = (uint8_t)imageToUse;       // current image index
+    syncPacket[3] = (uint8_t)bin.charAt(1);    // current image character
+    syncPacket[4] = (uint8_t)(interval & 0xFF); // interval low byte
+    syncPacket[5] = (uint8_t)((interval >> 8) & 0xFF); // interval high byte
+    
+    esp_err_t result = esp_now_send(broadcastAddress, syncPacket, 6);
+    #if SERIAL_DEBUG
+    if (result != ESP_OK) {
+        static unsigned long lastSyncErrMillis = 0;
+        if (millis() - lastSyncErrMillis > 3000) {
+            lastSyncErrMillis = millis();
+            Serial.printf("[SYNC] broadcast failed: %d\n", result);
+        }
+    }
+    #endif
+}
+
+// ============================================================
+// Apply Received Sync Data (Auxiliary only)
+// ============================================================
+// Snaps the auxiliary device to match main's pattern state.
+// Called from onDataReceived() when a sync packet is received.
+void applySync(const uint8_t *data) {
+    // Only auxiliary applies; main ignores
+    if (!auxillary) return;
+    
+    int newPattern = data[1];
+    int newImageToUse = data[2];
+    char newImageChar = (char)data[3];
+    long newInterval = data[4] | ((long)data[5] << 8);
+    
+    // Apply pattern change
+    if (newPattern != pattern) {
+        pattern = newPattern;
+        patternChooser = newPattern;
+        updateCurrentImagesForPattern(pattern);
+        #if SERIAL_DEBUG
+        Serial.printf("[SYNC] pattern -> %d\n", newPattern);
+        #endif
+    }
+    
+    // Apply image change
+    if (newImageToUse != imageToUse || bin.charAt(1) != newImageChar) {
+        imageToUse = newImageToUse;
+        bin.setCharAt(1, newImageChar);
+        // Signal file reader task to reload the new image
+        extern char currentLoadedImageChar;
+        extern bool fileNeedsReload;
+        currentLoadedImageChar = '\0';
+        fileNeedsReload = true;
+        #if SERIAL_DEBUG
+        Serial.printf("[SYNC] image -> %d ('%c')\n", newImageToUse, newImageChar);
+        #endif
+    }
+    
+    // Apply interval change
+    if (newInterval != interval) {
+        interval = newInterval;
+        #if SERIAL_DEBUG
+        Serial.printf("[SYNC] interval -> %ld ms\n", newInterval);
+        #endif
+    }
+    
+    // Reset phase timer so auxiliary doesn't advance immediately on its own
+    previousMillis3 = millis();
 }
