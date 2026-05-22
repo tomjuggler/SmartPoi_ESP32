@@ -62,6 +62,9 @@ void handleUDP() {
 // Receives 3-3-2 bit-packed pixel data identical to UDP format
 // ESP-IDF v5.x signature: first param is esp_now_recv_info_t* (not uint8_t*)
 void onDataReceived(const esp_now_recv_info_t *recv_info, const uint8_t *incomingData, int len) {
+    // Only process if in pattern 0 (UDP/ESP-NOW mode)
+    if (pattern != 0) return;
+
     // Only process if data size matches expected pixel count
     if (len != NUM_PX) {
         #if SERIAL_DEBUG
