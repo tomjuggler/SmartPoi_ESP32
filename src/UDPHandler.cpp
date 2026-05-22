@@ -6,7 +6,7 @@
 extern unsigned long currentMillis2;
 extern unsigned long previousMillis2;
 extern int len;
-extern uint8_t packetBuffer[255];
+extern uint8_t packetBuffer[250];  // ESP-NOW v1.0 max, supports up to 240px
 extern uint8_t Y;
 extern int state;
 extern int X;
@@ -43,7 +43,8 @@ void handleUDP() {
 // ============================================================
 // Called from WiFi task context — must be fast, no blocking I/O
 // Receives 3-3-2 bit-packed pixel data identical to UDP format
-void onDataReceived(const uint8_t *mac, const uint8_t *incomingData, int len) {
+// ESP-IDF v5.x signature: first param is esp_now_recv_info_t* (not uint8_t*)
+void onDataReceived(const esp_now_recv_info_t *recv_info, const uint8_t *incomingData, int len) {
     // Only process if data size matches expected pixel count
     if (len != NUM_PX) return;
 
