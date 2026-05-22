@@ -1,7 +1,7 @@
 #include "ColourPalette.h"
 #include "Globals.h"
 
-const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM =
+const TProgmemPalette16 myRedWhiteBluePalette_p =
 {
   CRGB::Red,
   CRGB::Gray,
@@ -356,4 +356,44 @@ void funColourJam()
     }
     FastLED.show();
   } 
+}
+
+/**
+ * @brief Fades all LEDs by scaling brightness down
+ * @details Reduces brightness of all LEDs by scaling factor 250/256
+ * @note Uses FastLED's nscale8() for efficient fading
+ */
+void fadeall()
+{
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i].nscale8(250);
+  }
+}
+
+/**
+ * @brief Cylon/Knight Rider multicolour scanning pattern
+ * @details Sweeps a rainbow hue back and forth across the LED strip
+ * @note Adapted from MagicPoi_Alpha led_peripheral.cpp
+ * @note Called from povDisplayTask - no mutex needed (single LED task owner)
+ */
+void cylonMulticolour()
+{
+  static uint8_t hue = 0;
+  
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CHSV(hue++, 255, 255);
+    FastLED.show();
+    fadeall();
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+  
+  for (int i = (NUM_LEDS) - 1; i >= 0; i--)
+  {
+    leds[i] = CHSV(hue++, 255, 255);
+    FastLED.show();
+    fadeall();
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
 }

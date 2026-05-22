@@ -31,6 +31,8 @@ void SetupRandomVariablePalette(CRGB a, CRGB b, CRGB c, CRGB d);
 void SetupRandomVariablePalette2(CRGB a, CRGB b, CRGB c, CRGB d);
 void add_glitter();
 void funColourJam();
+void cylonMulticolour();
+void fadeall();
 
 extern const TProgmemPalette16 myRedWhiteBluePalette_p;
 
