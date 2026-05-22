@@ -115,7 +115,9 @@ bool cacheInitialized = false;
 void initializePatternFileCache() {
   if (cacheInitialized) return;
 
+  #if SERIAL_DEBUG
   Serial.println("Initializing pattern file cache...");
+  #endif
 
   // Check each possible pattern file once and cache the result
   for (int i = 0; i < 62; i++) {
@@ -130,7 +132,9 @@ void initializePatternFileCache() {
   }
 
   cacheInitialized = true;
+  #if SERIAL_DEBUG
   Serial.println("Pattern file cache initialized");
+  #endif
 }
 
 // Refresh a specific cache entry when a file changes
@@ -152,7 +156,9 @@ void refreshPatternFileCacheEntry(char patternChar) {
 
 // Refresh entire cache (use sparingly)
 void refreshPatternFileCache() {
+  #if SERIAL_DEBUG
   Serial.println("Refreshing pattern file cache...");
+  #endif
   for (int i = 0; i < 62; i++) {
     String testBin = bin;
     testBin.setCharAt(1, images.charAt(i));
@@ -167,7 +173,9 @@ void refreshPatternFileCache() {
 
     delay(1);
   }
+  #if SERIAL_DEBUG
   Serial.println("Pattern file cache refreshed");
+  #endif
 }
 
 bool checkPatternFileExists(char patternChar) {
@@ -180,11 +188,15 @@ bool checkPatternFileExists(char patternChar) {
 }
 // POV Display Task - High priority task for microsecond-accurate LED timing
 void povDisplayTask(void *pvParameters) {
+  #if SERIAL_DEBUG
   Serial.println("POV display task started");
+  #endif
   
   // Stack monitoring for debugging
   UBaseType_t stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
+  #if SERIAL_DEBUG
   Serial.printf("POV task stack high water mark: %u\n", stackHighWaterMark);
+  #endif
   // Column delay for POV timing (adjust based on required refresh rate)
   const int columnDelay = 1000; // microseconds - adjust as needed
   
@@ -294,11 +306,15 @@ void povDisplayTask(void *pvParameters) {
 }
 // File Reader Task - Background task for LittleFS operations
 void fileReaderTask(void *pvParameters) {
+  #if SERIAL_DEBUG
   Serial.println("File reader task started");
+  #endif
   
   // Stack monitoring for debugging
   UBaseType_t stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
+  #if SERIAL_DEBUG
   Serial.printf("File task stack high water mark: %u\n", stackHighWaterMark);
+  #endif
   
   // Track last loaded image to avoid unnecessary reloads
   char lastLoadedImage = '\0';
@@ -354,7 +370,9 @@ void fileReaderTask(void *pvParameters) {
                   lastLoadedImage = targetImage;
                   needsReload = false;
                   
+                  #if SERIAL_DEBUG
                   Serial.printf("Loaded image %c (%d bytes)\n", targetImage, size);
+                  #endif
                 }
               }
               
@@ -367,7 +385,9 @@ void fileReaderTask(void *pvParameters) {
         } else {
           // File doesn't exist, mark for reload
           needsReload = true;
+          #if SERIAL_DEBUG
           Serial.printf("Image %c not found\n", targetImage);
+          #endif
         }
       }
     }
@@ -389,9 +409,11 @@ void setup()
   digitalWrite(DATA_PIN, LOW);
   fastLEDInit();
   fastLEDIndicateFast();
+  #if SERIAL_DEBUG
   Serial.begin(115200);
   Serial.println("");
   Serial.println("Started");
+  #endif
 
   EEPROM.begin(512);
 
@@ -404,11 +426,15 @@ void setup()
 
   bool result = LittleFS.begin(true);
   if (!result) {
+    #if SERIAL_DEBUG
     Serial.println("LittleFS mount failed! Error: 258");
+    #endif
     // Don't format - just continue without filesystem
     littleFSMounted = false;
   } else {
+    #if SERIAL_DEBUG
     Serial.println("LittleFS mounted successfully");
+    #endif
     littleFSMounted = true;
 
     // Check all files on startup
@@ -453,47 +479,69 @@ void setup()
   };
   esp_err_t wdt_init_result = esp_task_wdt_reconfigure(&wdt_config);
   if (wdt_init_result == ESP_OK) {
+    #if SERIAL_DEBUG
     Serial.println("Task watchdog timer reconfigured");
+    #endif
   } else {
     // If reconfigure fails, try to initialize
     wdt_init_result = esp_task_wdt_init(&wdt_config);
     if (wdt_init_result == ESP_OK) {
+      #if SERIAL_DEBUG
       Serial.println("Task watchdog timer initialized");
+      #endif
     } else {
+      #if SERIAL_DEBUG
       Serial.printf("Failed to initialize watchdog timer: %d\n", wdt_init_result);
+      #endif
     }
   }
   
   // Initialize FreeRTOS mutex semaphores for thread safety
   bufferMutex = xSemaphoreCreateMutex();
   if (bufferMutex == NULL) {
+    #if SERIAL_DEBUG
     Serial.println("ERROR: Failed to create bufferMutex!");
+    #endif
   } else {
+    #if SERIAL_DEBUG
     Serial.println("bufferMutex created successfully");
+    #endif
   }
   
   diskMutex = xSemaphoreCreateMutex();
   if (diskMutex == NULL) {
+    #if SERIAL_DEBUG
     Serial.println("ERROR: Failed to create diskMutex!");
+    #endif
   } else {
+    #if SERIAL_DEBUG
     Serial.println("diskMutex created successfully");
+    #endif
   }
   
   // Create FreeRTOS tasks
   xTaskCreate(povDisplayTask, "POV_TASK", POV_TASK_STACK_SIZE, NULL, POV_TASK_PRIO, &povTaskHandle);
   if (povTaskHandle == NULL) {
+    #if SERIAL_DEBUG
     Serial.println("ERROR: Failed to create POV display task!");
+    #endif
   } else {
+    #if SERIAL_DEBUG
     Serial.println("POV display task created successfully");
+    #endif
     // Add task to watchdog timer
     esp_task_wdt_add(povTaskHandle);
   }
   
   xTaskCreate(fileReaderTask, "FILE_TASK", FILE_TASK_STACK_SIZE, NULL, FILE_TASK_PRIO, &fileTaskHandle);
   if (fileTaskHandle == NULL) {
+    #if SERIAL_DEBUG
     Serial.println("ERROR: Failed to create file reader task!");
+    #endif
   } else {
+    #if SERIAL_DEBUG
     Serial.println("File reader task created successfully");
+    #endif
     // Add task to watchdog timer
     esp_task_wdt_add(fileTaskHandle);
   }
@@ -505,7 +553,9 @@ void setup()
   TaskHandle_t mainTaskHandle = xTaskGetCurrentTaskHandle();
   if (mainTaskHandle != NULL) {
     esp_task_wdt_add(mainTaskHandle);
+    #if SERIAL_DEBUG
     Serial.println("Main loop task added to watchdog timer");
+    #endif
   }
 }
 
@@ -581,7 +631,9 @@ void sendSmartPoiCheckin()
   // Don't send check-in in AP mode (wifiModeChooser == 1)
   if (wifiModeChooser == 1)
   {
+    #if SERIAL_DEBUG
     Serial.println("AP mode detected, skipping SmartPoi check-in");
+    #endif
     return;
   }
 
@@ -602,7 +654,9 @@ void sendSmartPoiCheckin()
     if (httpResponseCode > 0)
     {
       String response = http.getString();
+      #if SERIAL_DEBUG
       Serial.println("SmartPoi API Response: " + response);
+      #endif
 
       // Try to parse JSON response
       try
@@ -617,28 +671,38 @@ void sendSmartPoiCheckin()
           const char *timestamp = doc["timestamp"];
           const char *ip = doc["ip"];
 
+          #if SERIAL_DEBUG
           Serial.printf("Check-in successful - Status: %s, IP: %s\n", status, ip);
+          #endif
         }
         else
         {
+          #if SERIAL_DEBUG
           Serial.println("Failed to parse JSON response");
+          #endif
         }
       }
       catch (...)
       {
+        #if SERIAL_DEBUG
         Serial.println("Error parsing JSON response");
+        #endif
       }
     }
     else
     {
+      #if SERIAL_DEBUG
       Serial.printf("HTTP GET failed, error: %s\n", http.errorToString(httpResponseCode).c_str());
+      #endif
     }
 
     http.end();
   }
   else
   {
+    #if SERIAL_DEBUG
     Serial.println("WiFi not connected, skipping SmartPoi check-in");
+    #endif
   }
 }
 
