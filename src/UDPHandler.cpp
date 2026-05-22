@@ -19,7 +19,7 @@ void handleUDP() {
     static unsigned long lastPacketTime = 0;
     
     
-    len = Udp.read(packetBuffer, 255);
+    len = Udp.read(packetBuffer, sizeof(packetBuffer));  // 250 bytes — match ESP-NOW v1.0 limit
     if (len > 0) {
         packetBuffer[len] = 0;
         lastPacketTime = currentMillis2;
@@ -36,4 +36,23 @@ void handleUDP() {
     }
     FastLED.show();
     yield();
+}
+
+// ============================================================
+// ESP-NOW Receive Callback (dual-transport alongside UDP)
+// ============================================================
+// Called from WiFi task context — must be fast, no blocking I/O
+// Receives 3-3-2 bit-packed pixel data identical to UDP format
+void onDataReceived(const uint8_t *mac, const uint8_t *incomingData, int len) {
+    // Only process if data size matches expected pixel count
+    if (len != NUM_PX) return;
+
+    // Decompress 3-3-2 bit-packed format (identical to handleUDP logic)
+    for (int i = 0; i < NUM_PX; i++) {
+        int X = incomingData[i] - 127;
+        leds[i].r = (X & 0xE0);           // Red:   bits 7–5
+        leds[i].g = ((X << 3) & 0xE0);    // Green: bits 4–2
+        leds[i].b = (X << 6);            // Blue:  bits 1–0
+    }
+    FastLED.show();
 }

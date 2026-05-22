@@ -1,4 +1,5 @@
 #include <WiFi.h>
+#include <esp_now.h>
 #include <EEPROM.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -14,6 +15,9 @@
 // Global flag to track if LittleFS is mounted
 bool littleFSMounted = false;
 
+// ESP-NOW broadcast MAC address
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
 // Global Variable Definitions
 CRGB leds[NUM_LEDS];
 WiFiUDP Udp;
@@ -27,7 +31,7 @@ File settings;
 // UDP Handler variables
 unsigned long currentMillis2 = 0;
 int state = 0;
-uint8_t packetBuffer[255] = {0};
+uint8_t packetBuffer[250] = {0};  // ESP-NOW v1.0 max, supports up to 240px
 int len = 0;
 uint8_t Y = 0;
 int X = 0;
@@ -417,6 +421,23 @@ void setup()
   }
   fastLEDIndicate();
   Udp.begin(LOCAL_PORT);
+
+  // --- ESP-NOW: dual-transport alongside UDP ---
+  WiFi.setSleep(false);  // Disable WiFi sleep for reliable ESP-NOW rx
+  if (esp_now_init() == ESP_OK) {
+    esp_now_register_recv_cb(onDataReceived);
+    esp_now_peer_info_t peerInfo = {};
+    memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+    peerInfo.channel = 0;   // Use current WiFi channel
+    peerInfo.encrypt = false;
+    if (esp_now_add_peer(&peerInfo) == ESP_OK) {
+      Serial.println("ESP-NOW initialized (broadcast rx)");
+    } else {
+      Serial.println("ESP-NOW peer add failed");
+    }
+  } else {
+    Serial.println("ESP-NOW init failed — UDP only");
+  }
   setupElegantOTATask(); // Start the OTA task - also Web Server for built-in controls
 
   // Send check-in to SmartPoi API - only if WiFi is in STA mode
