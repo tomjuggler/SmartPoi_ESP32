@@ -1,14 +1,13 @@
 #!/bin/bash
 
 # Release creation script for SmartPoi_ESP32
-# This script creates a release branch, compiles firmware for both main and auxiliary configurations,
+# This script compiles firmware for both main and auxiliary configurations,
 # and creates a littlefs.bin file.
 
 set -e  # Exit on any error
 
 # Get current date for release folder name
 RELEASE_DATE=$(date +'%Y-%m-%d')
-RELEASE_BRANCH="release-${RELEASE_DATE}"
 RELEASE_DIR="releases/release-${RELEASE_DATE}"
 
 # Colors for output
@@ -44,10 +43,6 @@ check_requirements() {
         missing=1
     fi
     
-    if ! command_exists git; then
-        print_error "Git not found. Please install Git."
-        missing=1
-    fi
     
     if [ $missing -eq 1 ]; then
         exit 1
@@ -137,41 +132,20 @@ main() {
     # Check requirements
     check_requirements
     
-    # Check if we're in a git repository
-    if ! git rev-parse --git-dir > /dev/null 2>&1; then
-        print_error "Not in a git repository"
-        exit 1
-    fi
-    
-    # Check if release branch already exists
-    if git show-ref --verify --quiet "refs/heads/${RELEASE_BRANCH}"; then
-        print_warn "Release branch ${RELEASE_BRANCH} already exists"
+    # Check if release directory already exists
+    if [ -d "${RELEASE_DIR}" ]; then
+        print_warn "Release directory ${RELEASE_DIR} already exists"
         read -p "Do you want to continue and overwrite? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             print_info "Aborting..."
             exit 0
         fi
+        # Clean up existing release directory
+        print_warn "Removing existing release directory: ${RELEASE_DIR}"
+        rm -rf "${RELEASE_DIR}"
     fi
     
-    # 1. Create new release branch
-    print_info "Creating new release branch: ${RELEASE_BRANCH}"
-    
-    # Check if branch already exists and handle accordingly
-    if git show-ref --verify --quiet "refs/heads/${RELEASE_BRANCH}"; then
-        # Branch exists, check it out
-        print_info "Branch already exists, checking it out..."
-        git checkout "${RELEASE_BRANCH}"
-        
-        # Clean up any existing release directory for this date
-        if [ -d "${RELEASE_DIR}" ]; then
-            print_warn "Removing existing release directory: ${RELEASE_DIR}"
-            rm -rf "${RELEASE_DIR}"
-        fi
-    else
-        # Branch doesn't exist, create it
-        git checkout -b "${RELEASE_BRANCH}"
-    fi
     print_info "Creating release directory: ${RELEASE_DIR}"
     mkdir -p "${RELEASE_DIR}"
     
@@ -198,23 +172,10 @@ main() {
     print_info "Restoring original platformio.ini"
     mv platformio.ini.backup platformio.ini
     
-    # 7. Add the new files and commit
-    print_info "Adding release files to git..."
-    git add "${RELEASE_DIR}"
-    
-    print_info "Creating commit..."
-    git commit -m "Release ${RELEASE_DATE}: Main and auxiliary firmware + LittleFS"
-    
     print_info "Release created successfully!"
-    print_info "Release branch: ${RELEASE_BRANCH}"
     print_info "Release files in: ${RELEASE_DIR}"
     print_info "Files created:"
     ls -lh "${RELEASE_DIR}"
-    
-    print_info "\nNext steps:"
-    print_info "1. Review the compiled files"
-    print_info "2. Push the branch if needed: git push origin ${RELEASE_BRANCH}"
-    print_info "3. Create a release tag if desired: git tag -a v${RELEASE_DATE} -m 'Release ${RELEASE_DATE}'"
 }
 
 # Run main function

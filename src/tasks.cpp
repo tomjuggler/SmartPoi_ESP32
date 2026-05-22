@@ -932,18 +932,6 @@ void elegantOTATask(void *pvParameters)
     request->send(response);
   });
 
-  // notFound handler (for captive portal)
-  server.onNotFound([](AsyncWebServerRequest *request) {
-    // Check if we have enough memory for a response
-    if (!isMemoryAvailableForWebResponse()) {
-      request->redirect("/");
-      return;
-    }
-
-    // For captive portal, just redirect to root
-    request->redirect("/");
-  });
-
   server.on("/pattern", HTTP_GET, [](AsyncWebServerRequest *request) {
     handlePatternSettings(request);
   });
@@ -963,6 +951,19 @@ void elegantOTATask(void *pvParameters)
   server.on("/setting", HTTP_GET, [](AsyncWebServerRequest *request) {
     handleGeneralSettings(request);
   });
+
+  // notFound handler (for captive portal)
+  server.onNotFound([](AsyncWebServerRequest *request) {
+    // Check if we have enough memory for a response
+    if (!isMemoryAvailableForWebResponse()) {
+      request->redirect("/");
+      return;
+    }
+
+    // For captive portal, just redirect to root
+    request->redirect("/");
+  });
+
   
   server.begin();
   ElegantOTA.begin(&server); // Start ElegantOTA
