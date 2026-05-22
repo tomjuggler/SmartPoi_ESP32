@@ -457,12 +457,18 @@ void setup()
     peerInfo.channel = 0;   // Use current WiFi channel
     peerInfo.encrypt = false;
     if (esp_now_add_peer(&peerInfo) == ESP_OK) {
+      #if SERIAL_DEBUG
       Serial.println("ESP-NOW initialized (broadcast rx)");
+      #endif
     } else {
+      #if SERIAL_DEBUG
       Serial.println("ESP-NOW peer add failed");
+      #endif
     }
   } else {
+    #if SERIAL_DEBUG
     Serial.println("ESP-NOW init failed — UDP only");
+    #endif
   }
   setupElegantOTATask(); // Start the OTA task - also Web Server for built-in controls
 

@@ -17,12 +17,29 @@ extern bool channelChange;
 
 void handleUDP() {
     static unsigned long lastPacketTime = 0;
+    static unsigned long udpPktCount = 0;
     
+    #if SERIAL_DEBUG
+    static unsigned long lastDebugMillis = 0;
+    #endif
     
     len = Udp.read(packetBuffer, sizeof(packetBuffer));  // 250 bytes — match ESP-NOW v1.0 limit
     if (len > 0) {
         packetBuffer[len] = 0;
         lastPacketTime = currentMillis2;
+
+        #if SERIAL_DEBUG
+        udpPktCount++;
+        // Throttle: print every 100 packets or every 2 seconds
+        if (udpPktCount % 100 == 0 || millis() - lastDebugMillis > 2000) {
+            lastDebugMillis = millis();
+            Serial.printf("[UDP] pkt#%lu  len=%d  data[0..7]:", udpPktCount, len);
+            for (int d = 0; d < min(len, 8); d++) {
+                Serial.printf(" %02X", packetBuffer[d]);
+            }
+            Serial.println();
+        }
+        #endif
     } 
 
     for (int i = 0; i < NUM_PX; i++) {
@@ -46,7 +63,35 @@ void handleUDP() {
 // ESP-IDF v5.x signature: first param is esp_now_recv_info_t* (not uint8_t*)
 void onDataReceived(const esp_now_recv_info_t *recv_info, const uint8_t *incomingData, int len) {
     // Only process if data size matches expected pixel count
-    if (len != NUM_PX) return;
+    if (len != NUM_PX) {
+        #if SERIAL_DEBUG
+        static unsigned long lastBadLenMillis = 0;
+        if (millis() - lastBadLenMillis > 2000) {
+            lastBadLenMillis = millis();
+            Serial.printf("[ESPNOW] bad len=%d (expected %d)\n", len, NUM_PX);
+        }
+        #endif
+        return;
+    }
+
+    #if SERIAL_DEBUG
+    static unsigned long espnowPktCount = 0;
+    static unsigned long lastDbgMillis = 0;
+    espnowPktCount++;
+    // Throttle: print every 100 packets or every 2 seconds
+    if (espnowPktCount % 100 == 0 || millis() - lastDbgMillis > 2000) {
+        lastDbgMillis = millis();
+        Serial.printf("[ESPNOW] pkt#%lu  MAC=%02X:%02X:%02X:%02X:%02X:%02X  len=%d  data[0..7]:",
+            espnowPktCount,
+            recv_info->src_addr[0], recv_info->src_addr[1], recv_info->src_addr[2],
+            recv_info->src_addr[3], recv_info->src_addr[4], recv_info->src_addr[5],
+            len);
+        for (int d = 0; d < min(len, 8); d++) {
+            Serial.printf(" %02X", incomingData[d]);
+        }
+        Serial.println();
+    }
+    #endif
 
     // Decompress 3-3-2 bit-packed format (identical to handleUDP logic)
     for (int i = 0; i < NUM_PX; i++) {
