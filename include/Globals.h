@@ -11,6 +11,7 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <WiFiUdp.h>
+#include <esp_now.h>
 #include <FastLED.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -43,6 +44,7 @@ constexpr int CLOCK_PIN = CLOCKPIN;
 // Global Extern Variables
 extern CRGB leds[NUM_LEDS];
 extern WiFiUDP Udp;
+extern uint8_t broadcastAddress[];  // ESP-NOW broadcast MAC
 extern int newBrightness;  // Declaration for brightness control variable
 extern int targetBrightness;  // Declaration for target brightness
 extern bool routerOption;  // Declaration for router configuration flag
@@ -68,7 +70,7 @@ extern unsigned long currentMillis2;
 extern unsigned long previousMillis2;
 extern bool checkit;
 extern int len;
-extern uint8_t packetBuffer[255];
+extern uint8_t packetBuffer[250];  // ESP-NOW v1.0 max + margin for up to 240px
 extern uint8_t Y;
 extern int state;
 extern int X;
@@ -105,6 +107,7 @@ extern bool updateCurrentImagesForPattern(int pattern);
 // WiFi Mode Constants
   #define WIFI_STA WIFI_MODE_STA
   #define WIFI_AP WIFI_MODE_AP
+  #define WIFI_AP_STA WIFI_MODE_APSTA  // AP+STA: needed for ESP-NOW send on main device
 
 // Shared Functions
 extern void monitorHeapStatus();
