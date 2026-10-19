@@ -10,6 +10,7 @@
 #include "ShowLittleFSImage.h"
 #include "TimeFunc.h"
 #include "tasks.h"
+#include "Button.h"
 #include <esp_task_wdt.h>
 
 // Global flag to track if LittleFS is mounted
@@ -423,6 +424,9 @@ void setup()
   eepromPatternChooser(10);
   eepromReadChannelAndAddress(13, 14, 16, 17, 18);
   EEPROM.commit();
+
+  // Optional hardware button (enabled with -D HAVE_BUTTON=true).
+  buttonInit();
 
   bool result = LittleFS.begin(true);
   if (!result) {
