@@ -560,6 +560,10 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
   // Channel setting
   if(request->hasArg("channel")) {
     int newChannel = request->arg("channel").toInt();
+    // 1-13 = 2.4 GHz; 36-177 = 5 GHz on dual-band boards only.
+    if (!wifiChannelIsValid(newChannel)) {
+      newChannel = 1;
+    }
     EEPROM.write(13, newChannel);
     apChannel = newChannel;
   }

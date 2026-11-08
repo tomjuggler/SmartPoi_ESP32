@@ -128,6 +128,9 @@ void broadcastSync() {
     if (auxillary) return;
     
     // Only in AP mode (wifiModeChooser == 1)
+    // ESP-NOW is 2.4 GHz only, so there is nothing to reach from a 5 GHz AP.
+    if (wifiChannelIs5GHz(apChannel)) return;
+    
     if (wifiModeChooser != 1) return;
     
     uint8_t syncPacket[6];

@@ -169,3 +169,18 @@ File reader task monitors `pattern` and `imageToUse` variables, loads appropriat
 1. **DFRobot FireBeetle 2 ESP32-S3**: Old target, APA102 LEDs
 2. **DFRobot Beetle ESP32-C3**: Secondary target, WS2812 LEDs
 3. **Other ESP32-C3 boards**: Primary Target, WS2812 LEDs by default
+4. **Seeed Studio XIAO ESP32-C5** (`seeed_xiao_esp32c5`): dual-band 2.4 GHz + 5 GHz Wi-Fi 6, WS2812 LEDs on `DATAPIN` (XIAO D0 / GPIO1), 8 MB flash / 8 MB PSRAM
+
+### Dual-band (5 GHz) Wi-Fi
+
+The ESP32-C5 radio supports 5 GHz, the older boards do not. This is wired up as follows:
+
+- The `seeed_xiao_esp32c5` environment is pinned to Arduino core 3.3.12 / ESP-IDF 5.5.5 (`platform = .../55.03.312-1/...`) because ESP32-C5 support does not exist in 51.03.04. The other environments stay on 51.03.04 so their builds are unchanged.
+- `-D DUAL_BAND_WIFI=true` enables the band logic (see `wifiChannelIs5GHz()` / `wifiChannelIsValid()` in `include/Globals.h`). On the C3/S3 environments it defaults to `0` and all band calls are compiled out.
+- **Router (STA) mode**: `WiFi.setBandMode(WIFI_BAND_MODE_AUTO)` after `WiFi.mode()`, so the C5 can join either a 2.4 GHz or a 5 GHz access point.
+- **AP mode**: the radio uses 5 GHz when `apChannel` is a 5 GHz channel (36-64, 100-144, 149-177, multiples of 4) and 2.4 GHz otherwise. `apChannel` is stored in EEPROM address 13 and can be set through `GET /setting?channel=<n>` (`handleGeneralSettings`). Invalid or 5 GHz channels on non-C5 boards fall back to channel 1.
+- **Default AP channel**: `-D DEFAULT_AP_CHANNEL=<n>` in `platformio.ini` is used the first time (EEPROM erased/invalid). The C5 env sets `36` so a fresh poi brings its setup AP up on 5 GHz. Change it at runtime with `/setting?channel=<n>` (note: the route is `/setting`, not `/settings`).
+- **Regulatory country is optional**: `-D WIFI_COUNTRY=\"ZA\"` (any ISO code) calls `esp_wifi_set_country_code()` before the AP/STA starts. Without it ESP-IDF's world domain (`01`) rejects 5 GHz AP channels above 48, so only 36-48 are usable.
+- **DFS channels are not usable for the SoftAP**: IDF rejects channels 52-64 and 100-144 in AP mode (`Configure channel to a DFS channel is not allowed in ap mode`). `wifiChannelIsValid()` therefore treats them as invalid and the AP falls back to channel 1. Use 36-48 or 149-165 for 5 GHz APs.
+- **Compatibility**: keep the AP on channel 1-13 for mixed poi sets. Older C3/S3 units cannot see a 5 GHz AP, and ESP-NOW (used for main-to-aux sync) is 2.4 GHz only, so `broadcastSync()` is skipped on a 5 GHz AP.
+- `WiFi.setBandMode()` must be called **after** `WiFi.mode()`, which is what starts the radio (otherwise the Arduino API logs "You need to start WiFi first").

@@ -109,6 +109,41 @@ extern bool updateCurrentImagesForPattern(int pattern);
   #define WIFI_AP WIFI_MODE_AP
   #define WIFI_AP_STA WIFI_MODE_APSTA  // AP+STA: needed for ESP-NOW send on main device
 
+// Dual-band (5 GHz capable) Wi-Fi support.
+// Enabled with -D DUAL_BAND_WIFI=true for boards with a 5 GHz radio (ESP32-C5).
+// It only selects which bands the radio may use; the rest of the code is shared.
+#ifndef DUAL_BAND_WIFI
+  #define DUAL_BAND_WIFI 0
+#endif
+
+// Channel used when EEPROM holds no valid channel yet (first boot / erased NVS).
+// Boards with a 5 GHz radio may set -D DEFAULT_AP_CHANNEL=36 for a 5 GHz setup AP.
+#ifndef DEFAULT_AP_CHANNEL
+  #define DEFAULT_AP_CHANNEL 1
+#endif
+
+// Valid 5 GHz channel numbers (20 MHz centre frequencies).
+// DFS channels cannot be used by the ESP32 SoftAP (IDF rejects them with
+// "Configure channel to a DFS channel is not allowed in ap mode").
+inline bool wifiChannelIsDfs(int channel) {
+  return (channel >= 52 && channel <= 64) || (channel >= 100 && channel <= 144);
+}
+inline bool wifiChannelIs5GHz(int channel) {
+  return (channel >= 36 && channel <= 64 && (channel - 36) % 4 == 0) ||
+         (channel >= 100 && channel <= 144 && (channel - 100) % 4 == 0) ||
+         (channel >= 149 && channel <= 177 && (channel - 149) % 4 == 0);
+}
+
+// 2.4 GHz channels 1-13 are always accepted; 5 GHz only where the radio supports it.
+inline bool wifiChannelIsValid(int channel) {
+  if (channel >= 1 && channel <= 13) return true;
+#if DUAL_BAND_WIFI
+  return wifiChannelIs5GHz(channel) && !wifiChannelIsDfs(channel);
+#else
+  return false;
+#endif
+}
+
 // Shared Functions
 extern void monitorHeapStatus();
 extern bool isMemoryAvailableForWebResponse();

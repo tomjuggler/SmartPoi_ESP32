@@ -7,6 +7,7 @@
 #include <WebServer.h>
 #include <WiFiMulti.h>
 #include <DNSServer.h>
+#include <esp_wifi.h>
 
 WiFiMulti WiFiMulti;
 DNSServer dnsServer;
@@ -80,10 +81,10 @@ void readAnotherPatternEEProm()
 void eepromReadChannelAndAddress(int addr1, int addr2, int addr3, int addr4, int addr5)
 {
     apChannel = EEPROM.read(addr1);
-    if (apChannel < 1 || apChannel > 11)
+    if (!wifiChannelIsValid(apChannel))
     {
-        apChannel = 1;
-        EEPROM.write(13, 1);
+        apChannel = wifiChannelIsValid(DEFAULT_AP_CHANNEL) ? DEFAULT_AP_CHANNEL : 1;
+        EEPROM.write(13, apChannel);
     }
     addrNumD = EEPROM.read(addr2);
     addrNumA = EEPROM.read(addr3);
@@ -91,6 +92,16 @@ void eepromReadChannelAndAddress(int addr1, int addr2, int addr3, int addr4, int
     addrNumC = EEPROM.read(addr5);
 }
 
+// No settings.txt: start the setup AP anyway. Besides making the web UI
+// reachable, this brings up the network stack that Udp.begin() relies on
+// (on newer Arduino cores a socket cannot be opened before Wi-Fi is started).
+static void startDefaultWifi()
+{
+    wifiModeChooser = 1;  // AP mode - there are no router credentials to use
+    char emptySsid[1] = { 0 };
+    char emptyPwd[1] = { 0 };
+    wifiChooser(emptySsid, emptyPwd);
+}
 void littleFSLoadSettings()
 {
   // Check if file exists before opening to avoid framework error logs
@@ -113,12 +124,14 @@ void littleFSLoadSettings()
       #if SERIAL_DEBUG
       Serial.println("Failed to open settings.txt, using default WiFi settings");
       #endif
+      startDefaultWifi();
     }
   } else {
     // File doesn't exist, use default values
     #if SERIAL_DEBUG
     Serial.println("settings.txt not found, using default WiFi settings");
     #endif
+    startDefaultWifi();
   }
 }
 
@@ -152,6 +165,20 @@ void checkFilesInSetup()
     root.close();
 }
 
+// Regulatory domain. Optional: -D WIFI_COUNTRY=\"ZA\" (or another ISO code).
+// ESP-IDF's default "01" (world) blocks 5 GHz channels above 48 for the
+// SoftAP, which makes e.g. channel 149 unusable until a country is set.
+static void wifiApplyCountry()
+{
+#ifdef WIFI_COUNTRY
+    esp_err_t err = esp_wifi_set_country_code(WIFI_COUNTRY, false);
+    #if SERIAL_DEBUG
+    if (err != ESP_OK) {
+        Serial.printf("WiFi: could not set country %s (%d)\n", WIFI_COUNTRY, err);
+    }
+    #endif
+#endif
+}
 void wifiChooser(char router_array[], char pwd_array[])
 {
     #if C_THREE
@@ -162,20 +189,53 @@ void wifiChooser(char router_array[], char pwd_array[])
         if (auxillary)
         {
             WiFi.mode(WIFI_STA);
+            wifiApplyCountry();
+#if DUAL_BAND_WIFI
+            // Auxiliary joins the main poi's AP, which may live on either band.
+            WiFi.setBandMode(WIFI_BAND_MODE_AUTO);
+#endif
             WiFi.begin(apName, apPass);
             WiFi.config(apIPauxillary, ipGatewayauxillary, ipSubnet, ipGatewayauxillary);
         }
         else
         {
             WiFi.mode(WIFI_AP_STA);  // AP+STA: AP serves web UI, idle STA enables ESP-NOW send
+            wifiApplyCountry();
+#if DUAL_BAND_WIFI
+            // A 5 GHz channel can only be used together with 5 GHz band support.
+            WiFi.setBandMode(wifiChannelIs5GHz(apChannel) ? WIFI_BAND_MODE_5G_ONLY
+                                                          : WIFI_BAND_MODE_AUTO);
+#endif
             WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-            WiFi.softAP(apName, apPass, apChannel);
+            bool apStarted = WiFi.softAP(apName, apPass, apChannel);
+#if DUAL_BAND_WIFI
+            if (!apStarted)
+            {
+                // The requested 5 GHz channel is not usable here (regulatory/DFS):
+                // fall back to the safe 2.4 GHz default instead of starting no AP.
+                WiFi.setBandMode(WIFI_BAND_MODE_AUTO);
+                apChannel = 1;
+                apStarted = WiFi.softAP(apName, apPass, apChannel);
+            }
+#endif
+            #if SERIAL_DEBUG
+            if (!apStarted) Serial.println("WiFi: AP failed to start");
+            #endif
             dnsServer.start(DNS_PORT, "*", apIP);
+            #if SERIAL_DEBUG
+            Serial.printf("AP '%s' on channel %d (%s)\n", apName, apChannel,
+                          wifiChannelIs5GHz(apChannel) ? "5 GHz" : "2.4 GHz");
+            #endif
         }
     }
     else
     {
         WiFi.mode(WIFI_STA);
+        wifiApplyCountry();
+#if DUAL_BAND_WIFI
+        // Router mode: scan and connect on both 2.4 GHz and 5 GHz.
+        WiFi.setBandMode(WIFI_BAND_MODE_AUTO);
+#endif
         WiFiMulti.addAP(router_array, pwd_array);
         #if SERIAL_DEBUG
         Serial.print("Connecting to: ");
@@ -190,12 +250,17 @@ void wifiChooser(char router_array[], char pwd_array[])
             Serial.print(", ");
             #endif
             wifiConnectAttemptCount++;
-            if (wifiConnectAttemptCount > 18)
+            // Dual-band scans take noticeably longer than 2.4 GHz only scans.
+            if (wifiConnectAttemptCount > (DUAL_BAND_WIFI ? 28 : 18))
             {
                 ESP.restart();
             }
             delay(500);
         }
+        #if SERIAL_DEBUG
+        Serial.printf("Connected on channel %d (%s)\n", WiFi.channel(),
+                      WiFi.channel() > 14 ? "5 GHz" : "2.4 GHz");
+        #endif
     }
 }
 
