@@ -8,6 +8,8 @@ void eepromWifiModeChooser(int addr);
 void eepromPatternChooser(int addr);
 void readAnotherPatternEEProm();
 void eepromReadChannelAndAddress(int addr1, int addr2, int addr3, int addr4, int addr5);
+bool wifiSetCountryCode(const char* cc);
+bool wifiChannelAllowedByCountry(int channel);
 void littleFSLoadSettings();
 void checkFilesInSetup();
 void wifiChooser(char router_array[], char pwd_array[]);

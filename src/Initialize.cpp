@@ -8,6 +8,7 @@
 #include <WiFiMulti.h>
 #include <DNSServer.h>
 #include <esp_wifi.h>
+#include <ctype.h>
 
 WiFiMulti WiFiMulti;
 DNSServer dnsServer;
@@ -165,18 +166,79 @@ void checkFilesInSetup()
     root.close();
 }
 
-// Regulatory domain. Optional: -D WIFI_COUNTRY=\"ZA\" (or another ISO code).
-// ESP-IDF's default "01" (world) blocks 5 GHz channels above 48 for the
-// SoftAP, which makes e.g. channel 149 unusable until a country is set.
-static void wifiApplyCountry()
+// Regulatory domain. A 2-letter ISO code can come from EEPROM (set through
+// /setting?country=XX) or from -D WIFI_COUNTRY=\"XX\". ESP-IDF's default "01"
+// (world) blocks 5 GHz AP channels above 48.
+static bool countryCodeLooksValid(const char* cc)
 {
-#ifdef WIFI_COUNTRY
-    esp_err_t err = esp_wifi_set_country_code(WIFI_COUNTRY, false);
+    if (!cc || !cc[0] || !cc[1] || cc[2] != '\0') return false;
+    if (cc[0] == '0' && cc[1] == '1') return true;  // IDF world domain
+    return isalpha((unsigned char)cc[0]) && isalpha((unsigned char)cc[1]);
+}
+
+bool wifiSetCountryCode(const char* cc)
+{
+    if (!countryCodeLooksValid(cc)) return false;
+#if DUAL_BAND_WIFI
+    char upper[3];
+    upper[0] = (char)toupper((unsigned char)cc[0]);
+    upper[1] = (char)toupper((unsigned char)cc[1]);
+    upper[2] = '\0';
+    esp_err_t err = esp_wifi_set_country_code(upper, false);
     #if SERIAL_DEBUG
     if (err != ESP_OK) {
-        Serial.printf("WiFi: could not set country %s (%d)\n", WIFI_COUNTRY, err);
+        Serial.printf("WiFi: could not set country %s (%d)\n", upper, err);
     }
     #endif
+#if SERIAL_DEBUG
+    {
+        wifi_country_t info;
+        if (esp_wifi_get_country(&info) == ESP_OK) {
+            Serial.printf("[WIFI] country=%c%c 2g=%u-%u 5gmask=0x%08x\n", info.cc[0], info.cc[1],
+                          info.schan, (unsigned)(info.schan + info.nchan - 1),
+                          (unsigned)info.wifi_5g_channel_mask);
+        }
+    }
+#endif
+    return err == ESP_OK;
+#else
+    (void)cc;
+    return false;  // country selection only matters on 5 GHz capable boards
+#endif
+}
+
+static void wifiApplyCountry()
+{
+    char stored[3] = { 0 };
+    stored[0] = (char)EEPROM.read(EEPROM_ADDR_COUNTRY);
+    stored[1] = (char)EEPROM.read(EEPROM_ADDR_COUNTRY + 1);
+    if (countryCodeLooksValid(stored)) {
+        wifiSetCountryCode(stored);
+        return;
+    }
+#ifdef WIFI_COUNTRY
+    wifiSetCountryCode(WIFI_COUNTRY);
+#endif
+}
+
+// True when the channel is usable as an AP channel under the current regulatory
+// domain (2.4 GHz range from the country table, 5 GHz bitmask/DFS rules).
+bool wifiChannelAllowedByCountry(int channel)
+{
+    if (!wifiChannelIsValid(channel)) return false;
+#if DUAL_BAND_WIFI
+    wifi_country_t country;
+    if (esp_wifi_get_country(&country) != ESP_OK) return true;
+    if (channel <= 14) {
+        return channel >= country.schan && channel < (int)country.schan + country.nchan;
+    }
+    if (wifiChannelIsDfs(channel)) return false;  // never usable for SoftAP
+    if (country.wifi_5g_channel_mask != 0) {
+        return (CHANNEL_TO_BIT(channel) & country.wifi_5g_channel_mask) != 0;
+    }
+    return true;
+#else
+    return true;
 #endif
 }
 void wifiChooser(char router_array[], char pwd_array[])
@@ -201,6 +263,13 @@ void wifiChooser(char router_array[], char pwd_array[])
         {
             WiFi.mode(WIFI_AP_STA);  // AP+STA: AP serves web UI, idle STA enables ESP-NOW send
             wifiApplyCountry();
+            // The stored channel may not be usable in this regulatory domain.
+            if (!wifiChannelAllowedByCountry(apChannel))
+            {
+                apChannel = wifiChannelAllowedByCountry(DEFAULT_AP_CHANNEL) ? DEFAULT_AP_CHANNEL : 1;
+                EEPROM.write(EEPROM_ADDR_CHANNEL, apChannel);
+                EEPROM.commit();
+            }
 #if DUAL_BAND_WIFI
             // A 5 GHz channel can only be used together with 5 GHz band support.
             WiFi.setBandMode(wifiChannelIs5GHz(apChannel) ? WIFI_BAND_MODE_5G_ONLY

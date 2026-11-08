@@ -122,6 +122,10 @@ extern bool updateCurrentImagesForPattern(int pattern);
   #define DEFAULT_AP_CHANNEL 1
 #endif
 
+// EEPROM layout (Arduino EEPROM emulation, kept in NVS)
+#define EEPROM_ADDR_CHANNEL 13
+#define EEPROM_ADDR_COUNTRY 19  // 2-char ISO code + NUL terminator at 19..21
+
 // Valid 5 GHz channel numbers (20 MHz centre frequencies).
 // DFS channels cannot be used by the ESP32 SoftAP (IDF rejects them with
 // "Configure channel to a DFS channel is not allowed in ap mode").

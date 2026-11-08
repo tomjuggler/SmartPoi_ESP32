@@ -1,5 +1,6 @@
 #include "tasks.h"
 #include "Globals.h"
+#include "Initialize.h"
 #include "LittleFS.h"
 
 // Declare function from ShowLittleFSImage.cpp
@@ -557,15 +558,47 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
   // Restore saved pattern
   pattern = savedPattern;
 
-  // Channel setting
+  // Regulatory country (2-letter ISO code, or "01" for the world domain).
+  // Only meaningful on 5 GHz capable boards; it decides which channels are allowed.
+  if (request->hasArg("country")) {
+    String cc = request->arg("country");
+    cc.trim();
+    char code[3] = { 0, 0, 0 };
+    if (cc.length() == 2) {
+      code[0] = cc[0];
+      code[1] = cc[1];
+    }
+    if (!wifiSetCountryCode(code)) {
+      response->setCode(400);
+      response->print("{\"Error\":\"Invalid or unsupported country code\"}");
+      request->send(response);
+      return;
+    }
+    EEPROM.write(EEPROM_ADDR_COUNTRY, code[0]);
+    EEPROM.write(EEPROM_ADDR_COUNTRY + 1, code[1]);
+    EEPROM.write(EEPROM_ADDR_COUNTRY + 2, 0);
+    #if SERIAL_DEBUG
+    Serial.printf("[SETTINGS] country -> %c%c\n", code[0], code[1]);
+    #endif
+  }
+
+  // Channel setting: 1-13 for 2.4 GHz, 5 GHz channels only where the board and
+  // the regulatory domain allow them (DFS channels are never valid for an AP).
   if(request->hasArg("channel")) {
     int newChannel = request->arg("channel").toInt();
-    // 1-13 = 2.4 GHz; 36-177 = 5 GHz on dual-band boards only.
-    if (!wifiChannelIsValid(newChannel)) {
-      newChannel = 1;
+    if (!wifiChannelAllowedByCountry(newChannel)) {
+      response->setCode(400);
+      EEPROM.commit();  // keep a country code that was accepted above
+      response->print("{\"Error\":\"Channel not allowed in this country\"}");
+      request->send(response);
+      return;
     }
-    EEPROM.write(13, newChannel);
+    EEPROM.write(EEPROM_ADDR_CHANNEL, newChannel);
     apChannel = newChannel;
+    #if SERIAL_DEBUG
+    Serial.printf("[SETTINGS] channel -> %d (allowed=%d)\n", newChannel,
+                  (int)wifiChannelAllowedByCountry(newChannel));
+    #endif
   }
 
   // Address settings
