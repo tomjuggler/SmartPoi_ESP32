@@ -9,7 +9,7 @@ This directory contains test scripts for testing WiFi connectivity and HTTP requ
 This script performs the following steps:
 
 1. **Connect to SmartPoi WiFi**: Uses `nmcli` to connect to the SmartPoi's Access Point
-   - SSID: `Smart_Poi9` (from `main.cpp`)
+   - SSID: `Smart_Poi_10` (from `main.cpp`)
    - Password: `SmartOne` (from `main.cpp`)
    - IP Address: `192.168.1.1` (default AP IP)
 
@@ -55,7 +55,7 @@ Based on the code in `tasks.cpp`, the script tests these endpoints:
 
 ### WiFi Configuration (from `main.cpp`)
 ```cpp
-const char *apName = "Smart_Poi9";
+const char *apName = "Smart_Poi_10";
 const char *apPass = "SmartOne";
 IPAddress apIP(192, 168, 1, 1);
 ```
@@ -102,8 +102,8 @@ Successful test output looks like:
 SmartPoi WiFi and HTTP Test Script
 ========================================
 [TEST] Step 1: Connecting to SmartPoi WiFi
-[TEST] Connecting to WiFi SSID: Smart_Poi9
-[SUCCESS] Connected to Smart_Poi9
+[TEST] Connecting to WiFi SSID: Smart_Poi_10
+[SUCCESS] Connected to Smart_Poi_10
 [TEST] Step 2: Testing HTTP connectivity
 [SUCCESS] HTTP server is responding (Status: 200)
 [TEST] Step 3: Listing files

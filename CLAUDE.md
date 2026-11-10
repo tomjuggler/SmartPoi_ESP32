@@ -89,7 +89,7 @@ cd tests
   - `C_THREE`: true for ESP32-C3 boards
 
 ### WiFi Configuration
-- AP mode: SSID `Smart_Poi9`, password `SmartOne`, IP `192.168.1.1`
+- AP mode: SSID `Smart_Poi_10`, password `SmartOne`, IP `192.168.1.1`
 - STA mode: Configurable via web interface and data/settings.txt file
 - Settings stored in EEPROM and LittleFS
 

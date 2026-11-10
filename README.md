@@ -1,55 +1,74 @@
 # SmartPoi ESP32
 
+> ## Active development
+>
+> **Magic Poi is here now.** Development is supported by Patreon subscribers -
+> subscribe for free to receive regular updates.
+>
+> **Patreon:** <https://patreon.com/c/circusscientist>  
+> **Magic Poi:** <http://magicpoi.com/>
+
 Persistence-of-vision (POV) LED poi firmware for ESP32. A strip of addressable LEDs
-spins with the poi and shows images in the air; patterns, brightness, interval, files
-and OTA updates are all handled from a web UI running on the poi itself.
+spins with the poi and shows images in the air. The **Android app is the main
+controller**; the on-board web UI is a backup with only basic controls (pattern,
+brightness, interval and AP/router settings) - it does not do file management.
 
 Supported boards: **ESP32-C3, ESP32-S3 and ESP32-C5**.
 Image heights of **36, 60, 72 and 120 px** are supported - the LED count in
 `platformio.ini` is simply whatever the current test board has fitted.
 
+## Control app
+
+**Android Controls** - the primary way to run a poi, including uploading and resizing
+images before they are sent. Download from Google Play:
+<https://play.google.com/store/apps/details?id=com.circusscientist.smartpoicontrols>
+
 ## Features
 
-- Web UI for pattern, brightness, interval and file management
+- Android app control: patterns, brightness, interval, image upload and resizing
 - LittleFS image storage with over 60 images on board
-- Hardware button support on all variants (plus a web UI for everything else)
+- Backup web UI for basic settings
+- Hardware button support on all variants (stepping patterns and blackout)
 - Real-time pixel streaming over UDP
 - OTA firmware updates with ElegantOTA
 - ESP-NOW state sync to auxiliary poi
 - Dual-band 2.4 GHz + 5 GHz Wi-Fi on the ESP32-C5
 
-## Control app
+## Before you upload
 
-**Android Controls** - download from Google Play:
-<https://play.google.com/store/apps/details?id=com.circusscientist.smartpoicontrols>
+Set the router credentials **before** flashing the filesystem, so the poi joins your
+network on first boot:
 
-## Quick start
+- Edit `data/settings.txt` - line 1 is the SSID, line 2 is the password - then upload
+  the filesystem (commands below). The same values can also be entered in the backup
+  web UI (`/setting?ssid=...&pwd=...`).
+- With no `settings.txt`, the poi starts its own access point:
 
-```bash
-# Build and flash a board
-pio run -e other_c3_board -t upload
-
-# Build and upload the LittleFS image (only needed when data/ changes)
-pio run -e other_c3_board -t buildfs
-pio run -e other_c3_board -t uploadfs
-
-# Serial monitor
-pio device monitor
-```
-
-On first boot, or whenever `data/settings.txt` is missing, the poi starts its own
-access point:
-
-- SSID: `Smart_Poi9`
+- SSID: `Smart_Poi_10`
 - Password: `SmartOne`
 - Address: <http://192.168.1.1/>
 
 These are example defaults compiled in from `platformio.ini` (`AP_NAME` /
-`AP_PASS`). Change them there before deploying, and set the router SSID/password
-through the web UI or `data/settings.txt` for router (STA) mode.
+`AP_PASS`). Change them there before deploying.
 
-> Do not commit real Wi-Fi credentials. `data/settings.txt` is a plain two-line file
-> (`SSID` on line 1, password on line 2) and ships with placeholder values only.
+> Do not commit real Wi-Fi credentials. `data/settings.txt` ships with placeholder
+> values only.
+
+## Quick start
+
+```bash
+# 1. Set data/settings.txt first (SSID on line 1, password on line 2)
+
+# 2. Build and flash the firmware
+pio run -e other_c3_board -t upload
+
+# 3. Upload the filesystem image when data/ changes
+pio run -e other_c3_board -t buildfs
+pio run -e other_c3_board -t uploadfs
+
+# 4. Serial monitor
+pio device monitor
+```
 
 ## Build commands
 
@@ -70,26 +89,28 @@ Release binaries are produced by `tests/create_bins.sh` (slow; run it deliberate
 
 | Pattern | What it shows |
 | --- | --- |
-| 0 | Live UDP pixel stream |
+| 0 | Live UDP pixel stream (UDP only, not ESP-NOW) |
 | 1 | Colour jam (algorithmic) |
 | 2-5 | Multi-image sequences |
 | 6 | Rotates through the stored sequence modes |
 | 7 | LEDs off |
 | 8+ | Stored images - over 60 available |
 
-Pattern 0 is fed over UDP only; ESP-NOW carries pattern state between poi, not pixel
-data. The current choice is kept in EEPROM (bytes 10 and 11) so it survives a reboot.
+ESP-NOW carries pattern state between poi, never pixel data. The current pattern is
+remembered in EEPROM only for the sequence modes (1-6); a single-image choice is not
+restored after a reboot and falls back to mode 1.
 
 ## Images
 
 - Stored in LittleFS as `.bin` files (for example `/a.bin`, `/b.bin`).
 - Format is 3-3-2 bit-packed: one byte per pixel, 3 bits red, 3 bits green, 2 bits blue.
-- Heights of 36, 60, 72 and 120 px are supported; width is derived from
-  `file_size / pxDown`, so keep images the same height as the LED count.
+- Heights of 36, 60, 72 and 120 px are supported.
+- The Android app resizes images for the selected poi before upload, so you do not
+  need to match the LED count yourself.
 - `MAXPX` caps the RAM buffer used to decode an image; oversized files are rejected.
 
-Files are uploaded through the web UI (`/edit`), which writes straight into LittleFS
-under a disk mutex so the display task never reads a half-written file.
+Uploads go through the HTTP file routes (`/edit`), which write into LittleFS under a
+disk mutex so the display task never reads a half-written file.
 
 ## Button
 
@@ -115,8 +136,8 @@ compiled out entirely, so the firmware runs unchanged without one.
 
 ## Wi-Fi
 
-- **AP mode** (default when there are no router credentials): serves the web UI at
-  `192.168.1.1` with a captive-portal DNS handler.
+- **AP mode** (default when there are no router credentials): serves the backup web UI
+  at `192.168.1.1` with a captive-portal DNS handler.
 - **STA / router mode**: joins the SSID and password from `data/settings.txt`.
 - **Channel** is stored in EEPROM (byte 13) and can be set with
   `GET /setting?channel=<n>`. Channels 1-13 are always accepted. On the C5, 5 GHz
@@ -130,11 +151,13 @@ compiled out entirely, so the firmware runs unchanged without one.
 - **ESP-NOW sync** is 2.4 GHz only, so sync broadcasts are skipped while the AP is on
   a 5 GHz channel. For mixed poi sets, keep the AP on channels 1-13.
 
-## Web API
+## HTTP API
+
+Used by the Android app and available for scripting. The web UI only exposes a subset.
 
 | Route | Method | Purpose |
 | --- | --- | --- |
-| `/` | GET | Web UI |
+| `/` | GET | Backup web UI |
 | `/site` | GET | UI page from LittleFS |
 | `/list` | GET | List files |
 | `/edit` | GET/PUT/POST/DELETE/OPTIONS | Read, create, upload and delete files |
@@ -179,11 +202,9 @@ cd tests
 
 See `tests/README.md` for details.
 
-## Magic Poi
-
-Coming soon - see [magicpoi.com](http://magicpoi.com/)  
-Support development on Patreon: <https://patreon.com/c/circusscientist>
-
 ---
 
+**Magic Poi is available now.** Active development is supported by Patreon
+subscribers - subscribe for free to receive regular updates:
+<https://patreon.com/c/circusscientist> | <http://magicpoi.com/>
 Under active development.

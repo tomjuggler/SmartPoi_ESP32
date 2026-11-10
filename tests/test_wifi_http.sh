@@ -4,7 +4,7 @@
 # This script connects to the SmartPoi AP and tests file operations
 
 # Configuration
-SSID="Smart_Poi9"
+SSID="Smart_Poi_10"
 PASSWORD="SmartOne"
 POI_IP="192.168.1.1"  # Default AP IP from main.cpp
 PORT=80
