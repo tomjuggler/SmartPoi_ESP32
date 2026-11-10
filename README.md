@@ -2,7 +2,7 @@
 
 > ## Active development
 >
-> **Magic Poi is here now.** Development is supported by Patreon subscribers -
+> **Magic Poi is here!!** Development is kindly supported by Patreon subscribers -
 > subscribe for free to receive regular updates.
 >
 > **Patreon:** <https://patreon.com/c/circusscientist>  
@@ -25,7 +25,7 @@ images before they are sent. Download from Google Play:
 
 ## Features
 
-- Android app control: patterns, brightness, interval, image upload and resizing
+- Android app control: patterns, brightness, interval, image upload and resizing. Magic Poi bridge (Timelines and more). 
 - LittleFS image storage with over 60 images on board
 - Backup web UI for basic settings
 - Hardware button support on all variants (stepping patterns and blackout)
@@ -36,13 +36,12 @@ images before they are sent. Download from Google Play:
 
 ## Before you upload
 
-Set the router credentials **before** flashing the filesystem, so the poi joins your
-network on first boot:
+Optional: set the router credentials **before** flashing the filesystem, so the poi has your own credentials hard coded for a backup:
 
 - Edit `data/settings.txt` - line 1 is the SSID, line 2 is the password - then upload
   the filesystem (commands below). The same values can also be entered in the backup
   web UI (`/setting?ssid=...&pwd=...`).
-- With no `settings.txt`, the poi starts its own access point:
+- With no `settings.txt`, (or in AP mode, default) the poi starts its own access point:
 
 - SSID: `Smart_Poi_10`
 - Password: `SmartOne`
@@ -83,7 +82,7 @@ pio run
 pio run -t clean
 ```
 
-Release binaries are produced by `tests/create_bins.sh` (slow; run it deliberately).
+Release image binaries are produced by `tests/create_bins.sh` (slow; run it deliberately).
 
 ## Patterns
 
