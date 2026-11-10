@@ -30,6 +30,13 @@ static constexpr int BUTTON_IMAGE_MODE_MAX = 62;
 static constexpr int BUTTON_SEQUENCE_MODE_MIN = 1;
 static constexpr int BUTTON_SEQUENCE_MODE_MAX = 5;
 
+// Which family of patterns a short press walks through. This is a mode, not a
+// boolean: add entries here (and a case in buttonShortPress) for new families.
+// 0 = sequence modes 1-5, 1 = single image modes 8-62.
+static constexpr uint8_t BUTTON_MODE_SEQUENCE = 0;
+static constexpr uint8_t BUTTON_MODE_IMAGES = 1;
+static constexpr uint8_t BUTTON_MODE_COUNT = 2;
+
 // Pattern used to turn the LEDs off.
 static constexpr int PATTERN_LEDS_OFF = 7;
 
@@ -47,6 +54,11 @@ extern bool fileNeedsReload;
 
 static TaskHandle_t buttonTaskHandle = nullptr;
 static volatile TickType_t lastIsrTick = 0;
+
+// What a short press walks through. A long press toggles it; selecting a
+// pattern elsewhere (web UI, periodic change) re-syncs it through
+// syncButtonModeFromPattern(). Starts at 0.
+static uint8_t buttonMode = BUTTON_MODE_SEQUENCE;
 
 // -----------------------------------------------------------------------------
 // Pattern actions (must run outside the ISR)
@@ -82,71 +94,95 @@ static void buttonApplyPattern(int newPattern) {
 }
 
 /**
- * Short press:
- *   - modes 1-5: advance to the next sequence mode, wrapping 5 -> 1
- *   - modes 8-62: advance the single image, wrapping 62 -> 8
- *   - anything else: switch to mode 1
- *
- * Modes whose files are missing are skipped so the display never lands on an
- * empty pattern (mode 1 is always valid).
+ * Derive the button mode from the pattern currently being shown, so a pattern
+ * picked in the web UI always leaves the button in the matching mode:
+ *   - modes 1-5  -> BUTTON_MODE_SEQUENCE (0)
+ *   - modes 8-62 -> BUTTON_MODE_IMAGES   (1)
+ * Any other pattern (7 = LEDs off, 0 = UDP, ...) keeps the current mode, so a
+ * long press can park the poi on 7 without losing the chosen family.
+ */
+static void syncButtonModeFromPattern() {
+  if (pattern >= BUTTON_SEQUENCE_MODE_MIN &&
+      pattern <= BUTTON_SEQUENCE_MODE_MAX) {
+    buttonMode = BUTTON_MODE_SEQUENCE;
+  } else if (pattern >= BUTTON_IMAGE_MODE_MIN &&
+             pattern <= BUTTON_IMAGE_MODE_MAX) {
+    buttonMode = BUTTON_MODE_IMAGES;
+  }
+}
+
+/**
+ * Advance to the next usable pattern in [first, last], wrapping around, and
+ * apply it. When the current pattern is outside the range, start at `first`.
+ * Patterns whose files are missing are skipped; if none are usable, fall back
+ * to `first` (mode 1 is always valid).
+ */
+static void buttonAdvanceWithin(int first, int last) {
+  int candidate = pattern;
+  const int modeCount = last - first + 1;
+  bool found = false;
+
+  if (candidate < first || candidate > last) {
+    candidate = first - 1;
+  }
+
+  for (int i = 0; i < modeCount; i++) {
+    candidate++;
+    if (candidate > last) {
+      candidate = first;
+    }
+    if (updateCurrentImagesForPattern(candidate)) {
+      found = true;
+      break;
+    }
+  }
+
+  // If nothing in the family has files, fall back to mode 1, which is always
+  // valid, rather than leaving the display on an empty pattern.
+  buttonApplyPattern(found ? candidate : BUTTON_SEQUENCE_MODE_MIN);
+}
+
+/**
+ * Short press: walk through the family selected by buttonMode.
+ *   - BUTTON_MODE_SEQUENCE (0): modes 1-5, wrapping 5 -> 1
+ *   - BUTTON_MODE_IMAGES   (1): single images 8-62, wrapping 62 -> 8
+ * The mode is re-derived from the current pattern first, so 1-5 is always mode
+ * 0 and 8-62 is always mode 1, however the pattern was selected.
  */
 static void buttonShortPress() {
   if (uploadInProgress) {
     return;
   }
 
-  if (pattern >= BUTTON_SEQUENCE_MODE_MIN &&
-      pattern <= BUTTON_SEQUENCE_MODE_MAX) {
-    int candidate = pattern;
-    bool found = false;
+  syncButtonModeFromPattern();
 
-    for (int i = 0; i < BUTTON_SEQUENCE_MODE_MAX; i++) {
-      candidate++;
-      if (candidate > BUTTON_SEQUENCE_MODE_MAX) {
-        candidate = BUTTON_SEQUENCE_MODE_MIN;
-      }
-      if (updateCurrentImagesForPattern(candidate)) {
-        found = true;
-        break;
-      }
-    }
+  switch (buttonMode) {
+    case BUTTON_MODE_IMAGES:
+      buttonAdvanceWithin(BUTTON_IMAGE_MODE_MIN, BUTTON_IMAGE_MODE_MAX);
+      return;
 
-    buttonApplyPattern(found ? candidate : BUTTON_SEQUENCE_MODE_MIN);
-    return;
+    case BUTTON_MODE_SEQUENCE:
+    default:
+      // Unknown/future modes fall back to the sequence behaviour.
+      buttonAdvanceWithin(BUTTON_SEQUENCE_MODE_MIN, BUTTON_SEQUENCE_MODE_MAX);
+      return;
   }
-
-  if (pattern >= BUTTON_IMAGE_MODE_MIN && pattern <= BUTTON_IMAGE_MODE_MAX) {
-    int candidate = pattern;
-    bool found = false;
-    const int modeCount = BUTTON_IMAGE_MODE_MAX - BUTTON_IMAGE_MODE_MIN + 1;
-
-    for (int i = 0; i < modeCount; i++) {
-      candidate++;
-      if (candidate > BUTTON_IMAGE_MODE_MAX) {
-        candidate = BUTTON_IMAGE_MODE_MIN;
-      }
-      if (updateCurrentImagesForPattern(candidate)) {
-        found = true;
-        break;
-      }
-    }
-
-    buttonApplyPattern(found ? candidate : BUTTON_SEQUENCE_MODE_MIN);
-    return;
-  }
-
-  // Pattern 0, 6, 7, 63+ and anything unexpected: go to mode 1.
-  updateCurrentImagesForPattern(BUTTON_SEQUENCE_MODE_MIN);
-  buttonApplyPattern(BUTTON_SEQUENCE_MODE_MIN);
 }
 
 /**
- * Long press: turn the LEDs off (pattern 7).
+ * Long press: turn the LEDs off (pattern 7) and flip buttonMode so the next
+ * short press walks the other family (0 -> 1 -> 0 ...). The mode is synced from
+ * the current pattern first, so a pattern picked in the web UI toggles from the
+ * matching value.
  */
 static void buttonLongPress() {
   if (uploadInProgress) {
     return;
   }
+
+  syncButtonModeFromPattern();
+
+  buttonMode = (buttonMode + 1) % BUTTON_MODE_COUNT;
 
   pattern = PATTERN_LEDS_OFF;
   patternChooser = PATTERN_LEDS_OFF;
@@ -157,19 +193,9 @@ static void buttonLongPress() {
   leds_off = false;
 
   #if SERIAL_DEBUG
-  Serial.println("[BUTTON] long press -> LEDs off");
+  Serial.printf("[BUTTON] long press -> LEDs off, mode %u\n", buttonMode);
   #endif
 }
-
-// -----------------------------------------------------------------------------
-// ISR and task
-// -----------------------------------------------------------------------------
-
-/**
- * Falling-edge ISR. Debounce is done in software here using the FreeRTOS tick
- * counter, then the button task is notified to measure the press length.
- */
-
 static void buttonISR(void* arg) {
   (void)arg;
 
