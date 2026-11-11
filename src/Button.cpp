@@ -3,6 +3,7 @@
 #if HAVE_BUTTON
 
 #include "Globals.h"
+#include "Initialize.h"
 #include <EEPROM.h>
 #include <driver/gpio.h>
 #include <esp_attr.h>
@@ -72,6 +73,7 @@ static void buttonApplyPattern(int newPattern) {
   pattern = newPattern;
   patternChooser = newPattern;
 
+  setPattern6Mode(false); // an explicit pattern leaves pattern-6 rotation
   EEPROM.write(10, static_cast<uint8_t>(newPattern));
   if (newPattern >= BUTTON_SEQUENCE_MODE_MIN &&
       newPattern <= BUTTON_SEQUENCE_MODE_MAX) {
@@ -186,6 +188,7 @@ static void buttonLongPress() {
 
   pattern = PATTERN_LEDS_OFF;
   patternChooser = PATTERN_LEDS_OFF;
+  setPattern6Mode(false); // an explicit pattern leaves pattern-6 rotation
   EEPROM.write(10, PATTERN_LEDS_OFF);
   EEPROM.commit();
 

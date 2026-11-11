@@ -447,6 +447,9 @@ void setup()
     // Initialize pattern file cache to avoid repeated LittleFS.exists() calls
     initializePatternFileCache();
 
+    // Restore and validate the pattern saved in EEPROM now that the file
+    // cache is ready (image patterns need currentImages populated).
+    applyStoredPattern();
     littleFSLoadSettings();
   }
   fastLEDIndicate();

@@ -186,6 +186,48 @@ void onOTAEnd(bool success)
   // <Add your own code here>
 }
 
+// Apply and persist a pattern selection. All display modes are remembered
+// (0-70); pattern 6 resolves to the last sequence mode so it no longer rotates
+// on every boot, and image patterns are validated against the filesystem.
+static void applyPatternSetting(int newPatt) {
+  if (newPatt < 0 || newPatt > 70) return;
+
+  // Pattern 6 is a mode, not a picture: keep the current pattern on screen and
+  // let each reboot advance 1 -> 2 -> ... -> 5 -> 1. Reset the counter so the
+  // first reboot after selecting 6 starts at pattern 1.
+  if (newPatt == 6) {
+    setPattern6Mode(true);
+    patternChooser = 6;
+    EEPROM.write(10, 6);
+    EEPROM.write(11, 0);
+    return;
+  }
+
+  // Any other explicit choice leaves pattern-6 mode.
+  setPattern6Mode(false);
+  patternChooser = newPatt;
+  EEPROM.write(10, static_cast<uint8_t>(newPatt));
+  pattern = newPatt;
+
+  if (pattern >= 1 && pattern <= 5) {
+    EEPROM.write(11, static_cast<uint8_t>(pattern));
+  }
+
+  if (pattern == 7) {
+    leds_off = false; // Reset flag so povDisplayTask will turn LEDs off
+  }
+
+  if (pattern >= 2 && pattern <= 69) {
+    if (!updateCurrentImagesForPattern(pattern)) {
+      // No files available for this pattern, switch to pattern 1
+      pattern = 1;
+      patternChooser = 1;
+      EEPROM.write(10, 1);
+      EEPROM.write(11, 1);
+    }
+  }
+}
+
 void handlePatternSettings(AsyncWebServerRequest* request) {
   // Check if we have enough memory for a response
   if (ESP.getFreeHeap() < 8192) {
@@ -209,37 +251,7 @@ void handlePatternSettings(AsyncWebServerRequest* request) {
         return;
     }
     
-    patternChooser = newPatt;
-    EEPROM.write(10, newPatt);
-    
-    if(newPatt > 0 && newPatt < 6) {
-      pattern = patternChooser;
-      EEPROM.write(11, newPatt);
-      // Update currentImages for the new pattern
-      if (!updateCurrentImagesForPattern(newPatt)) {
-        // No files available for this pattern, switch to pattern 1
-        pattern = 1;
-        patternChooser = 1;
-        EEPROM.write(10, 1);
-        EEPROM.write(11, 1);
-      }
-    }
-    else if(newPatt == 7) {
-      leds_off = false; // Reset flag so povDisplayTask will turn LEDs off
-      pattern = patternChooser;
-    } else {
-      pattern = patternChooser;
-      // For patterns 8+, update currentImages and verify file exists
-      if (pattern >= 8 && pattern <= 69) {
-        if (!updateCurrentImagesForPattern(pattern)) {
-          // File doesn't exist for this pattern, switch to pattern 1
-          pattern = 1;
-          patternChooser = 1;
-          EEPROM.write(10, 1);
-          EEPROM.write(11, 1);
-        }
-      }
-    }
+    applyPatternSetting(newPatt);
     
     EEPROM.commit();
     response->setCode(200);
@@ -613,24 +625,7 @@ void handleGeneralSettings(AsyncWebServerRequest* request) {
   // Pattern chooser
   if(request->hasArg("patternChooserChange")) {
     int newPatt = request->arg("patternChooserChange").toInt();
-    patternChooser = newPatt;
-    EEPROM.write(10, newPatt);
-    
-    if(newPatt > 0 && newPatt < 6) {
-      pattern = patternChooser;
-      EEPROM.write(11, newPatt);
-      // Update currentImages for the new pattern
-      if (!updateCurrentImagesForPattern(newPatt)) {
-        // No files available for this pattern, switch to pattern 1
-        pattern = 1;
-        patternChooser = 1;
-        EEPROM.write(10, 1);
-        EEPROM.write(11, 1);
-      }
-    }
-    else if(newPatt == 70) {
-      pattern = patternChooser;
-    }
+    applyPatternSetting(newPatt);
   }
 
   EEPROM.commit();

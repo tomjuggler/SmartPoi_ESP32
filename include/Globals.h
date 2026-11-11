@@ -124,6 +124,7 @@ extern bool updateCurrentImagesForPattern(int pattern);
 
 // EEPROM layout (Arduino EEPROM emulation, kept in NVS)
 #define EEPROM_ADDR_CHANNEL 13
+#define EEPROM_ADDR_PAT6 12    // 1 = pattern 6 boot-rotation mode
 #define EEPROM_ADDR_COUNTRY 19  // 2-char ISO code + NUL terminator at 19..21
 
 // Valid 5 GHz channel numbers (20 MHz centre frequencies).

@@ -91,13 +91,18 @@ Release image binaries are produced by `tests/create_bins.sh` (slow; run it deli
 | 0 | Live UDP pixel stream (UDP only, not ESP-NOW) |
 | 1 | Colour jam (algorithmic) |
 | 2-5 | Multi-image sequences |
-| 6 | Rotates through the stored sequence modes |
+| 6 | Boot-rotation mode: sequence 1-5 on successive reboots |
 | 7 | LEDs off |
 | 8+ | Stored images - over 60 available |
 
-ESP-NOW carries pattern state between poi, never pixel data. The current pattern is
-remembered in EEPROM only for the sequence modes (1-6); a single-image choice is not
-restored after a reboot and falls back to mode 1.
+ESP-NOW carries pattern state between poi, never pixel data. Patterns 1-70 are
+remembered across power cycles. Selecting pattern 6 enters a boot-rotation mode
+without changing the pattern on screen: the next reboot shows sequence 1, the one
+after 2, and so on through 5, looping. Selecting any other pattern leaves that mode
+and is kept across reboots. Pattern 0 (UDP) and 7 (LEDs off) are runtime-only states
+that would look like a fault after a reboot, so they - and any invalid stored value -
+fall back to pattern 1. If a restored image pattern's files are missing, the firmware
+also falls back to pattern 1.
 
 ## Images
 

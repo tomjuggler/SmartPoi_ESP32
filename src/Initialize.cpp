@@ -53,30 +53,83 @@ void eepromWifiModeChooser(int addr)
     }
 }
 
+// Restore the selected pattern at boot. Patterns 1-70 are remembered, with
+// pattern 6 acting as a boot-rotation mode. Pattern 0 (UDP) and 7 (LEDs off)
+// are runtime-only states that look like a fault after a reboot, so they - and
+// any invalid value - fall back to pattern 1.
 void eepromPatternChooser(int addr)
 {
-    patternChooser = EEPROM.read(addr);
-    if (patternChooser < 1 || patternChooser > 6)
+    int stored = EEPROM.read(addr);
+    bool pattern6Mode = EEPROM.read(EEPROM_ADDR_PAT6) == 1;
+
+    // Migration: older firmware used EEPROM[10] == 6 without the flag.
+    if (stored == 6)
     {
-        patternChooser = 1;
+        pattern6Mode = true;
+        EEPROM.write(EEPROM_ADDR_PAT6, 1);
     }
-    pattern = patternChooser;
-    EEPROM.write(10, patternChooser);
-    if (patternChooser == 6)
+
+    // 0 and 7 are runtime-only; never let a stale flag override them.
+    if (stored == 0 || stored == 7 || stored > 70)
     {
-        readAnotherPatternEEProm();
+        stored = 1;
+        pattern6Mode = false;
+        EEPROM.write(EEPROM_ADDR_PAT6, 0);
     }
+
+    if (pattern6Mode)
+    {
+        patternChooser = 6;
+        pattern = advanceSequencePattern();
+        EEPROM.write(10, 6);
+    }
+    else
+    {
+        patternChooser = stored;
+        pattern = stored;
+        EEPROM.write(10, stored);
+    }
+
+    #if SERIAL_DEBUG
+    Serial.printf("[PATTERN] restored %d (chooser %d, pat6 %d)\n",
+                  pattern, patternChooser, pattern6Mode ? 1 : 0);
+    #endif
 }
 
-void readAnotherPatternEEProm()
+// Pattern 6 rotation: 0 after selection, then 1 -> 2 -> ... -> 5 -> 1 on boot.
+int advanceSequencePattern()
 {
-    pattern = EEPROM.read(11);
-    pattern++;
-    if (pattern > 5)
+    int sequence = EEPROM.read(11);
+    sequence++;
+    if (sequence < 1 || sequence > 5)
     {
-        pattern = 1;
+        sequence = 1;
     }
-    EEPROM.write(11, pattern);
+    EEPROM.write(11, sequence);
+    return sequence;
+}
+
+void setPattern6Mode(bool enabled)
+{
+    EEPROM.write(EEPROM_ADDR_PAT6, enabled ? 1 : 0);
+}
+// Called after LittleFS and the pattern-file cache are ready. Populates
+// currentImages for the restored image pattern and falls back to pattern 1 if
+// its files have disappeared (e.g. after a filesystem update). Without this the
+// POV task can run with an empty image list and look like the LEDs are off.
+void applyStoredPattern()
+{
+    if (pattern >= 2 && pattern <= 69)
+    {
+        if (!updateCurrentImagesForPattern(pattern))
+        {
+            pattern = 1;
+            patternChooser = 1;
+            EEPROM.write(10, 1);
+            EEPROM.write(11, 1);
+            EEPROM.commit();
+        }
+    }
 }
 
 void eepromReadChannelAndAddress(int addr1, int addr2, int addr3, int addr4, int addr5)
